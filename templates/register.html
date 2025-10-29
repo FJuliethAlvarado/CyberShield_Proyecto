@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card" style="max-width: 500px;">
+        <!-- Header -->
+        <div class="auth-header">
+            <i class="fas fa-user-plus auth-icon"></i>
+            <h2 class="auth-title">Crear Cuenta</h2>
+            <p class="auth-subtitle">Únete a CyberShield PyME</p>
+        </div>
+
+        <!-- Body -->
+        <div class="auth-body">
+            <form class="auth-form" method="POST" action="/register">
+                <!-- Empresa -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-building"></i> Nombre de la Empresa *
+                    </label>
+                    <input type="text" name="empresa" class="form-control" required>
+                </div>
+
+                <!-- Usuario -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-user"></i> Usuario *
+                    </label>
+                    <input type="text" name="username" class="form-control" minlength="4" required>
+                    <small class="text-muted">Mínimo 4 caracteres</small>
+                </div>
+
+                <!-- Email -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-envelope"></i> Email *
+                    </label>
+                    <input type="email" name="email" class="form-control" required>
+                </div>
+
+                <!-- Plan -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-box"></i> Selecciona tu Plan *
+                    </label>
+                    <select name="plan" class="form-select" required>
+                        <option value="">-- Elige un plan --</option>
+                        <option value="gratuito" selected>Plan Gratuito - $0 (3 diagnósticos/mes)</option>
+                        <option value="premium">Plan Premium - $49.900/mes (Ilimitado)</option>
+                    </select>
+                </div>
+
+                <!-- Contraseña -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-lock"></i> Contraseña *
+                    </label>
+                    <input type="password" name="password" class="form-control" minlength="6" required>
+                    <small class="text-muted">Mínimo 6 caracteres</small>
+                </div>
+
+                <!-- Confirmar Contraseña -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-lock"></i> Confirmar Contraseña *
+                    </label>
+                    <input type="password" name="confirm_password" class="form-control" minlength="6" required>
+                </div>
+
+                <!-- Términos -->
+                <div class="auth-options">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="terms" required>
+                        <label class="form-check-label" for="terms">
+                            Acepto los <a href="#" class="auth-link" data-bs-toggle="modal" data-bs-target="#termsModal">términos y condiciones</a>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Botón de registro -->
+                <button type="submit" class="auth-btn btn-register">
+                    <i class="fas fa-user-plus"></i> Crear Cuenta
+                </button>
+            </form>
+
+            <!-- Links -->
+            <div class="auth-links">
+                <p class="mb-0">¿Ya tienes cuenta? <a href="/login" class="auth-link">Inicia sesión aquí</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Términos y Condiciones -->
+<div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="termsModalLabel">
+                    <i class="fas fa-file-contract text-primary me-2"></i>
+                    Términos y Condiciones
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="terms-content">
+                    <h6 class="text-primary">1. Aceptación de los Términos</h6>
+                    <p>Al registrarse en CyberShield PyME, usted acepta cumplir con estos términos y condiciones de uso.</p>
+
+                    <h6 class="text-primary">2. Servicios Ofrecidos</h6>
+                    <p>CyberShield PyME proporciona servicios de diagnóstico de ciberseguridad para pequeñas y medianas empresas, incluyendo:</p>
+                    <ul>
+                        <li>Evaluación de riesgos cibernéticos</li>
+                        <li>Análisis de vulnerabilidades</li>
+                        <li>Recomendaciones de seguridad</li>
+                        <li>Generación de reportes</li>
+                    </ul>
+
+                    <h6 class="text-primary">3. Planes y Límites</h6>
+                    <p><strong>Plan Gratuito:</strong> 3 diagnósticos mensuales, reportes básicos.</p>
+                    <p><strong>Plan Premium:</strong> Diagnósticos ilimitados, reportes avanzados, soporte prioritario.</p>
+
+                    <h6 class="text-primary">4. Privacidad y Datos</h6>
+                    <p>Nos comprometemos a proteger la privacidad de sus datos. Toda información proporcionada será tratada conforme a nuestra Política de Privacidad.</p>
+
+                    <h6 class="text-primary">5. Responsabilidades del Usuario</h6>
+                    <ul>
+                        <li>Proporcionar información veraz y actualizada</li>
+                        <li>Mantener la confidencialidad de sus credenciales</li>
+                        <li>Utilizar el servicio conforme a la ley</li>
+                        <li>No realizar ingeniería inversa del software</li>
+                    </ul>
+
+                    <h6 class="text-primary">6. Limitación de Responsabilidad</h6>
+                    <p>CyberShield PyME proporciona herramientas de diagnóstico, pero no garantiza la prevención total de incidentes de seguridad.</p>
+
+                    <h6 class="text-primary">7. Modificaciones</h6>
+                    <p>Nos reservamos el derecho de modificar estos términos en cualquier momento. Las modificaciones serán notificadas por email.</p>
+
+                    <div class="alert alert-info mt-4">
+                        <small>
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>Importante:</strong> Al hacer clic en "Acepto", confirma que ha leído y comprendido estos términos y condiciones.
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="document.getElementById('terms').checked = true;">
+                    <i class="fas fa-check"></i> Aceptar Términos
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.terms-content {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.terms-content h6 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.terms-content ul {
+    padding-left: 20px;
+}
+
+.terms-content li {
+    margin-bottom: 5px;
+}
+
+/* Scroll personalizado */
+.terms-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.terms-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.terms-content::-webkit-scrollbar-thumb {
+    background: var(--primary-blue);
+    border-radius: 10px;
+}
+
+.terms-content::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-blue-dark);
+}
+</style>
+{% endblock %}

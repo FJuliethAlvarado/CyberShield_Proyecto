@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <!-- ===== PERFIL DE USUARIO ===== -->
+    <div class="col-md-3">
+        <div class="card mb-4 h-100">
+            <div class="card-body text-center">
+
+                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto" 
+                style="width: 80px; height: 80px; font-size: 2rem;">
+                    {{ user.empresa[0]|upper }}
+                </div>
+                <h4 class="mt-3">{{ user.empresa }}</h4>
+                <h6 class="text-muted">{{ user.username }}</h6>
+                
+                {% if user.rol == 'admin' %}
+                <span class="badge bg-danger p-2 mt-2">
+                    <i class="fas fa-shield-alt"></i> ADMINISTRADOR
+                </span>
+                {% else %}
+                <span class="badge bg-{{ 'success' if user.plan == 'premium' else 'secondary' }} p-2 mt-2">
+                    {{ user.plan|upper }}
+                </span>
+                {% endif %}
+                
+                <div class="mt-4 text-start">
+                    <!-- ===== CONTACTO ===== -->
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                    <!-- Teléfono -->
+                    <p><strong>Teléfono:</strong> {{ user.telefono if user.telefono else 'No disponible' }}</p>
+                    <!-- Ubicación -->
+                    <p><strong>Dirección:</strong> {{ user.ciudad }}, {{ user.departamento }}, {{ user.pais }}</p>
+                    <!-- Sector / Industria -->
+                    <p><strong>Sector / Industria:</strong> {{ user.sector }}</p>
+                    <p><strong>Miembro desde:</strong> {{ user.fecha_registro.strftime('%d/%m/%Y') if user.fecha_registro else 'Fecha no disponible' }}</p>
+                    {% if user.rol == 'admin' %}
+                    <div class="alert alert-info mt-3">
+                        <small>
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>Acceso completo:</strong> Tienes permisos de administrador sobre toda la plataforma.
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== DASHBOARD PRINCIPAL ===== -->
+    <div class="col-md-9">
+        <div class="row g-3 mb-4">
+            <!-- Estadísticas -->
+            <div class="col-md-4">
+                <div class="card h-100 text-center">
+                    <div class="card-header"><i class="fas fa-chart-bar"></i> Estadísticas</div>
+                    <div class="card-body">
+                        <h3 class="text-primary">{{ stats.diagnosticos_realizados }}</h3>
+                        <p class="text-muted mb-2">
+                            {% if user.rol == 'admin' %}Total Diagnósticos{% else %}Diagnósticos Realizados{% endif %}
+                        </p>
+                        <h3 class="text-success">{{ stats.archivos_analizados }}</h3>
+                        <p class="text-muted mb-2">
+                            {% if user.rol == 'admin' %}Total Archivos{% else %}Archivos Analizados{% endif %}
+                        </p>
+                        <h3 class="text-info">
+                            {% if user.rol == 'admin' %}∞{% else %}{{ restantes }}{% endif %}
+                        </h3>
+                        <p class="text-muted mb-0">
+                            {% if user.rol == 'admin' %}Límite de Diagnósticos{% else %}Diagnósticos Restantes{% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Uso Mensual (solo PyMEs) -->
+            {% if user.rol != 'admin' %}
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header"><i class="fas fa-chart-pie"></i> Uso del Mes</div>
+                    <div class="card-body">
+                        <p class="mb-2"><i class="fas fa-clipboard-list text-primary"></i> Diagnósticos Usados</p>
+                        <div class="progress mb-2" style="height: 10px;">
+                            <div class="progress-bar bg-primary" 
+                                 style="width: {{ (stats.diagnosticos_este_mes / plan_info.diagnosticos_mes * 100) if plan_info.diagnosticos_mes != 999999 else 0 }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ restantes }} diagnósticos restantes</small>
+
+                        <p class="mt-3 mb-2"><i class="fas fa-file-upload text-success"></i> Archivos Analizados</p>
+                        <div class="progress mb-2" style="height: 10px;">
+                            <div class="progress-bar bg-success" 
+                                 style="width: {{ (stats.archivos_analizados / plan_info.archivos_mes * 100) if plan_info.archivos_mes != 999999 else 0 }}%"></div>
+                        </div>
+                        {% set archivos_restantes = plan_info.archivos_mes - stats.archivos_analizados %}
+                        <small class="text-muted">{{ archivos_restantes if archivos_restantes > 0 else 0 }} archivos restantes</small>
+
+                        <div class="alert alert-info mt-3 mb-0">
+                            <i class="fas fa-calendar-alt"></i> Reinicio: 1er día de cada mes
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Plan Actual (solo PyMEs) -->
+            {% if user.rol != 'admin' %}
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header"><i class="fas fa-crown"></i> Mi Plan</div>
+                    <div class="card-body">
+                        <h5>{{ plan_info.nombre }}</h5>
+                        <p class="text-muted mb-2">
+                            {% if user.plan == 'gratuito' %}$0 / mes{% elif user.plan == 'premium' %}$49.900 / mes{% elif user.plan == 'empresarial' %}$99.900 / mes{% endif %}
+                        </p>
+                        <ul class="list-unstyled mb-3">
+                            <li><i class="fas fa-check text-success"></i> 
+                                {% if plan_info.diagnosticos_mes == 999999 %}Diagnósticos ilimitados{% else %}{{ plan_info.diagnosticos_mes }} diagnósticos/mes{% endif %}
+                            </li>
+                            <li><i class="fas fa-check text-success"></i> 
+                                {% if plan_info.archivos_mes == 999999 %}Archivos ilimitados{% else %}{{ plan_info.archivos_mes }} archivos/mes{% endif %}
+                            </li>
+                            <li><i class="fas fa-{{ 'check' if plan_info.reportes_pdf else 'times' }} text-{{ 'success' if plan_info.reportes_pdf else 'danger' }}"></i> Reportes PDF</li>
+                        </ul>
+                        {% if user.plan == 'gratuito' %}
+                        <a href="/planes" class="btn btn-success w-100">Mejorar Plan</a>
+                        {% else %}
+                        <button class="btn btn-outline-secondary w-100" disabled>Plan Actual</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ===== ACCIONES RÁPIDAS ===== -->
+        <div class="row g-3 mb-4">
+            {% if user.rol != 'admin' %}
+            <div class="col-md-3">
+                <a href="/diagnostico" class="btn btn-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center">
+                    <i class="fas fa-clipboard-list fa-2x mb-2"></i>
+                    <span class="fw-bold">Nuevo Diagnóstico</span>
+                    <small class="text-light">Evaluar riesgos</small>
+                </a>
+            </div>
+            <div class="col-md-3">
+                {% if user.plan != 'gratuito' %}
+                <a href="/upload" class="btn btn-success w-100 h-100 d-flex flex-column align-items-center justify-content-center">
+                    <i class="fas fa-file-excel fa-2x mb-2"></i>
+                    <span class="fw-bold">Analizar Archivo</span>
+                    <small class="text-light">Datos financieros</small>
+                </a>
+                {% else %}
+                <button class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center" disabled>
+                    <i class="fas fa-lock fa-2x mb-2"></i>
+                    <span class="fw-bold">Analizar Archivo</span>
+                    <small class="text-muted">Requiere Premium</small>
+                </button>
+                {% endif %}
+            </div>
+            <div class="col-md-3">
+                <a href="/planes" class="btn btn-warning w-100 h-100 d-flex flex-column align-items-center justify-content-center">
+                    <i class="fas fa-crown fa-2x mb-2"></i>
+                    <span class="fw-bold">Mejorar Plan</span>
+                    <small class="text-dark">Más funcionalidades</small>
+                </a>
+            </div>
+            <div class="col-md-3">
+                {% if stats.diagnosticos_realizados > 0 %}
+                <a href="/perfil" class="btn btn-info w-100 h-100 d-flex flex-column align-items-center justify-content-center">
+                    <i class="fas fa-chart-bar fa-2x mb-2"></i>
+                    <span class="fw-bold">Ver Estadísticas</span>
+                    <small class="text-light">Tu progreso</small>
+                </a>
+                {% else %}
+                <button class="btn btn-outline-info w-100 h-100 d-flex flex-column align-items-center justify-content-center" disabled>
+                    <i class="fas fa-chart-bar fa-2x mb-2"></i>
+                    <span class="fw-bold">Ver Estadísticas</span>
+                    <small class="text-muted">Realiza un diagnóstico</small>
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if user.rol == 'admin' %}
+            <div class="col-md-3">
+                <a href="/admin/dashboard" class="btn btn-primary w-100 h-100"> <i class="fas fa-tachometer-alt"></i> Panel de Control </a>
+            </div>
+            <div class="col-md-3">
+                <a href="/admin/usuarios" class="btn btn-success w-100 h-100"> <i class="fas fa-users"></i> Gestionar Usuarios </a>
+            </div>
+            <div class="col-md-3">
+                <a href="/admin/diagnosticos" class="btn btn-info w-100 h-100"> <i class="fas fa-clipboard-list"></i> Ver Diagnósticos </a>
+            </div>
+            <div class="col-md-3">
+                <a href="/admin/archivos" class="btn btn-warning w-100 h-100"> <i class="fas fa-file-upload"></i> Archivos Analizados </a>
+            </div>
+            {% endif %}
+        </div>
+
+            <!-- ========== SECCIÓN: ACTIVIDAD RECIENTE ========== -->
+    <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-history"></i> 
+                {% if user.rol == 'admin' %}Actividad Reciente del Sistema{% else %}Mi Actividad Reciente{% endif %}
+            </h5>
+            {% if user.rol != 'admin' and total_actividades > 5 %}
+            <a href="/mi_actividad" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-external-link-alt"></i> Ver Todo
+            </a>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            {% if user.rol == 'admin' %}
+            <!-- ACTIVIDAD PARA ADMIN -->
+            <p class="text-muted text-center">
+                <i class="fas fa-info-circle"></i> 
+                Como administrador, puedes monitorear toda la actividad del sistema desde el Panel de Control.
+            </p>
+            {% else %}
+            <!-- ACTIVIDAD PARA PyMEs -->
+            {% if actividad_reciente %}
+            <div class="list-group list-group-flush">
+                {% for actividad in actividad_reciente %}
+                <div class="list-group-item px-0 border-0">
+                    <div class="d-flex align-items-start">
+                        <!-- Icono -->
+                        <div class="flex-shrink-0">
+                            <span class="badge bg-{{ actividad.color }} rounded-circle p-2">
+                                <i class="{{ actividad.icono }} text-white"></i>
+                            </span>
+                        </div>
+                        
+                        <!-- Contenido -->
+                        <div class="flex-grow-1 ms-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1 fw-bold">{{ actividad.titulo }}</h6>
+                                    <p class="mb-1 text-muted small">{{ actividad.descripcion }}</p>
+                                </div>
+                                <small class="text-muted text-nowrap ms-2">
+                                    {{ actividad.fecha.strftime('%d/%m/%Y') }}<br>
+                                    <small>{{ actividad.fecha.strftime('%H:%M') }}</small>
+                                </small>
+                            </div>
+                            
+                            <!-- Badge del tipo -->
+                            <span class="badge bg-light text-dark border small">
+                                <i class="fas fa-{{ 'clipboard-list' if actividad.tipo == 'diagnostico' else 'file-excel' }} me-1"></i>
+                                {{ 'Diagnóstico' if actividad.tipo == 'diagnostico' else 'Análisis' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if not loop.last %}
+                <hr class="my-2">
+                {% endif %}
+                
+                {% endfor %}
+            </div>
+            
+            <!-- Ver más actividad si hay más de 5 -->
+            {% if total_actividades > 3 %}
+            <div class="text-center mt-3">
+                <a href="/mi_actividad" class="btn btn-primary btn-sm">
+                    <i class="fas fa-list"></i> Ver todas las actividades ({{ total_actividades }})
+                </a>
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <!-- SIN ACTIVIDAD -->
+            <div class="text-center py-4">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Aún no hay actividad</h5>
+                <p class="text-muted mb-3">Realiza tu primer diagnóstico para comenzar</p>
+                <a href="/diagnostico" class="btn btn-primary">
+                    <i class="fas fa-clipboard-list"></i> Comenzar Diagnóstico
+                </a>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    </div>
+</div>
+
+{% endblock %}

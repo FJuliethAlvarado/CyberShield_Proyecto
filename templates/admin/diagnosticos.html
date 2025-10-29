@@ -1,0 +1,487 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">
+                <i class="fas fa-clipboard-list text-primary"></i> Todos los Diagnósticos
+            </h1>
+            <p class="text-muted mb-0">Gestión completa de diagnósticos del sistema</p>
+        </div>
+        <a href="/admin/dashboard" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Volver al Dashboard
+        </a>
+    </div>
+
+    <!-- Estadísticas Rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-clipboard-list text-primary mb-2" style="font-size: 2rem;"></i>
+                    <h3 class="mb-0">{{ diagnosticos|length }}</h3>
+                    <small class="text-muted">Total Diagnósticos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-circle text-danger mb-2" style="font-size: 2rem;"></i>
+                    <h3 class="mb-0">{{ diagnosticos|selectattr('nivel_riesgo', 'equalto', 'Crítico')|list|length }}</h3>
+                    <small class="text-muted">Riesgos Críticos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-triangle text-warning mb-2" style="font-size: 2rem;"></i>
+                    <h3 class="mb-0">{{ diagnosticos|selectattr('nivel_riesgo', 'equalto', 'Alto')|list|length }}</h3>
+                    <small class="text-muted">Riesgos Altos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle text-success mb-2" style="font-size: 2rem;"></i>
+                    <h3 class="mb-0">{{ diagnosticos|selectattr('nivel_riesgo', 'equalto', 'Bajo')|list|length }}</h3>
+                    <small class="text-muted">Riesgos Bajos</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">
+                <i class="fas fa-filter"></i> Filtros de Búsqueda
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-exclamation-triangle"></i> Nivel de Riesgo
+                    </label>
+                    <select class="form-select" id="filtroRiesgo" onchange="aplicarFiltros()">
+                        <option value="todos">Todos los niveles</option>
+                        <option value="Crítico">🔴 Crítico</option>
+                        <option value="Alto">🟠 Alto</option>
+                        <option value="Medio">🟡 Medio</option>
+                        <option value="Bajo">🟢 Bajo</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-crown"></i> Plan de Usuario
+                    </label>
+                    <select class="form-select" id="filtroPlan" onchange="aplicarFiltros()">
+                        <option value="todos">Todos los planes</option>
+                        <option value="gratuito">Gratuito</option>
+                        <option value="premium">Premium</option>
+                        <option value="empresarial">Empresarial</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-search"></i> Buscar Empresa
+                    </label>
+                    <input type="text" class="form-control" id="buscarEmpresa" 
+                           placeholder="Escribe el nombre de la empresa..." 
+                           oninput="aplicarFiltros()">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-redo"></i> Limpiar
+                    </label>
+                    <button class="btn btn-secondary w-100" onclick="limpiarFiltros()">
+                        <i class="fas fa-times"></i> Limpiar Filtros
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Diagnósticos -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">
+                <i class="fas fa-list"></i> Listado de Diagnósticos
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="tablaDiagnosticos">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center" style="width: 60px;">ID</th>
+                            <th>Usuario / Empresa</th>
+                            <th class="text-center">Evaluación</th>
+                            <th class="text-center">Puntuación</th>
+                            <th class="text-center">Nivel Riesgo</th>
+                            <th class="text-center">Plan</th>
+                            <th class="text-center">Fecha</th>
+                            <th class="text-center" style="width: 150px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for diagnostico in diagnosticos %}
+                        <tr class="fila-diagnostico" 
+                            data-riesgo="{{ diagnostico.nivel_riesgo }}"
+                            data-plan="{{ diagnostico.usuario_plan }}"
+                            data-empresa="{{ diagnostico.empresa|lower }}">
+                            
+                            <!-- ID -->
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark">#{{ diagnostico.id }}</span>
+                            </td>
+
+                            <!-- Usuario / Empresa -->
+                            <td>
+                                <div>
+                                    <strong class="d-block">{{ diagnostico.username }}</strong>
+                                    <small class="text-muted">
+                                        <i class="fas fa-building"></i> {{ diagnostico.empresa }}
+                                    </small>
+                                </div>
+                            </td>
+
+                            <!-- Evaluación -->
+                            <td>
+                                <div class="text-center">
+                                    <span class="badge bg-secondary mb-1">
+                                        {{ diagnostico.tipo_riesgo }}
+                                    </span>
+                                    <br>
+                                    <small>
+                                        <span class="badge bg-{{ 'danger' if diagnostico.impacto == 'Alto' else 'warning' if diagnostico.impacto == 'Medio' else 'success' }}">
+                                            I: {{ diagnostico.impacto }}
+                                        </span>
+                                        <span class="badge bg-{{ 'danger' if diagnostico.probabilidad == 'Alta' else 'warning' if diagnostico.probabilidad == 'Media' else 'success' }}">
+                                            P: {{ diagnostico.probabilidad }}
+                                        </span>
+                                    </small>
+                                </div>
+                            </td>
+
+                            <!-- Puntuación -->
+                            <td class="text-center">
+                                <div>
+                                    <strong class="text-{{ 'danger' if diagnostico.puntuacion_final >= 75 else 'warning' if diagnostico.puntuacion_final >= 55 else 'info' if diagnostico.puntuacion_final >= 35 else 'success' }}">
+                                        {{ "%.1f"|format(diagnostico.puntuacion_final) }}/100
+                                    </strong>
+                                    <div class="progress mt-1" style="height: 6px;">
+                                        <div class="progress-bar bg-{{ 'danger' if diagnostico.puntuacion_final >= 75 else 'warning' if diagnostico.puntuacion_final >= 55 else 'info' if diagnostico.puntuacion_final >= 35 else 'success' }}" 
+                                            style="width: {{ diagnostico.puntuacion_final }}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Nivel Riesgo -->
+                            <td class="text-center">
+                                <span class="badge bg-{{ 'danger' if diagnostico.nivel_riesgo == 'Crítico' else 'warning' if diagnostico.nivel_riesgo == 'Alto' else 'info' if diagnostico.nivel_riesgo == 'Medio' else 'success' }} px-3 py-2">
+                                    {{ diagnostico.nivel_riesgo|upper }}
+                                </span>
+                            </td>
+
+                            <!-- Plan -->
+                            <td class="text-center">
+                                <span class="badge bg-{{ 'success' if diagnostico.usuario_plan == 'premium' else 'warning' if diagnostico.usuario_plan == 'empresarial' else 'secondary' }}">
+                                    {{ diagnostico.usuario_plan|upper }}
+                                </span>
+                            </td>
+
+                            <!-- Fecha -->
+                            <td class="text-center">
+                                <small>
+                                    <i class="fas fa-calendar"></i>
+                                    {{ diagnostico.fecha_analisis.strftime('%d/%m/%Y') if diagnostico.fecha_analisis else 'N/A' }}
+                                    <br>
+                                    <i class="fas fa-clock"></i>
+                                    <span class="text-muted">{{ diagnostico.fecha_analisis.strftime('%H:%M') if diagnostico.fecha_analisis else '' }}</span>
+                                </small>
+                            </td>
+
+                            <!-- Acciones -->
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <button type="button" 
+                                            class="btn btn-sm btn-info text-white" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#detallesModal{{ diagnostico.id }}"
+                                            title="Ver Detalles Completos">
+                                        <i class="fas fa-eye"></i>
+                                        <span class="d-none d-lg-inline ms-1">Ver</span>
+                                    </button>
+                                    <a href="/admin/eliminar_diagnostico/{{ diagnostico.id }}" 
+                                       class="btn btn-sm btn-danger"
+                                       title="Eliminar Diagnóstico"
+                                       onclick="return confirm('⚠️ ¿Estás seguro de eliminar este diagnóstico?\n\nEsta acción no se puede deshacer.')">
+                                        <i class="fas fa-trash"></i>
+                                        <span class="d-none d-lg-inline ms-1">Eliminar</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODALES (Fuera de la tabla) -->
+{% for diagnostico in diagnosticos %}
+<div class="modal fade" id="detallesModal{{ diagnostico.id }}" tabindex="-1" aria-labelledby="detallesModalLabel{{ diagnostico.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="detallesModalLabel{{ diagnostico.id }}">
+                    <i class="fas fa-file-medical-alt"></i> Detalles del Diagnóstico #{{ diagnostico.id }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-user"></i> Información del Usuario
+                                </h6>
+                                <p class="mb-2">
+                                    <strong>Usuario:</strong> {{ diagnostico.username }}
+                                </p>
+                                <p class="mb-2">
+                                    <strong>Empresa:</strong> {{ diagnostico.empresa }}
+                                </p>
+                                <p class="mb-0">
+                                    <strong>Plan:</strong> 
+                                    <span class="badge bg-{{ 'success' if diagnostico.usuario_plan == 'premium' else 'warning' if diagnostico.usuario_plan == 'empresarial' else 'secondary' }}">
+                                        {{ diagnostico.usuario_plan|upper }}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-exclamation-triangle"></i> Evaluación de Riesgo
+                                </h6>
+                                <p class="mb-2">
+                                    <strong>Tipo:</strong> 
+                                    <span class="badge bg-secondary">{{ diagnostico.tipo_riesgo }}</span>
+                                </p>
+                                <p class="mb-2">
+                                    <strong>Impacto:</strong> 
+                                    <span class="badge bg-{{ 'danger' if diagnostico.impacto == 'Alto' else 'warning' if diagnostico.impacto == 'Medio' else 'success' }}">
+                                        {{ diagnostico.impacto }}
+                                    </span>
+                                </p>
+                                <p class="mb-0">
+                                    <strong>Probabilidad:</strong> 
+                                    <span class="badge bg-{{ 'danger' if diagnostico.probabilidad == 'Alta' else 'warning' if diagnostico.probabilidad == 'Media' else 'success' }}">
+                                        {{ diagnostico.probabilidad }}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Puntuación -->
+                <div class="card mb-3">
+                    <div class="card-body text-center">
+                        <h6 class="text-primary mb-3">
+                            <i class="fas fa-chart-line"></i> Puntuación y Nivel de Riesgo
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h3 class="text-{{ 'danger' if diagnostico.puntuacion_final >= 75 else 'warning' if diagnostico.puntuacion_final >= 55 else 'info' if diagnostico.puntuacion_final >= 35 else 'success' }}">
+                                    {{ "%.1f"|format(diagnostico.puntuacion_final) }}/100
+                                </h3>
+                                <small class="text-muted">Puntuación</small>
+                            </div>
+                            <div class="col-md-6">
+                                <h3>
+                                    <span class="badge bg-{{ 'danger' if diagnostico.nivel_riesgo == 'Crítico' else 'warning' if diagnostico.nivel_riesgo == 'Alto' else 'info' if diagnostico.nivel_riesgo == 'Medio' else 'success' }} px-4 py-2">
+                                        {{ diagnostico.nivel_riesgo|upper }}
+                                    </span>
+                                </h3>
+                                <small class="text-muted">Nivel de Riesgo</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Observaciones -->
+                {% if diagnostico.observaciones %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h6 class="text-primary mb-3">
+                            <i class="fas fa-comment"></i> Observaciones
+                        </h6>
+                        <div class="alert alert-info mb-0">
+                            {{ diagnostico.observaciones }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Resumen -->
+                <div class="alert alert-{{ 'danger' if diagnostico.nivel_riesgo == 'Crítico' else 'warning' if diagnostico.nivel_riesgo == 'Alto' else 'info' if diagnostico.nivel_riesgo == 'Medio' else 'success' }} mb-0">
+                    <h6 class="alert-heading">
+                        <i class="fas fa-{{ 'times-circle' if diagnostico.nivel_riesgo == 'Crítico' else 'exclamation-triangle' if diagnostico.nivel_riesgo == 'Alto' else 'info-circle' if diagnostico.nivel_riesgo == 'Medio' else 'check-circle' }}"></i>
+                        Recomendación
+                    </h6>
+                    <p class="mb-0">
+                        {{ 'Se requiere acción inmediata. Implementar medidas de seguridad urgentemente.' if diagnostico.nivel_riesgo == 'Crítico' else 
+                           'Revisión prioritaria recomendada. Evaluar vulnerabilidades.' if diagnostico.nivel_riesgo == 'Alto' else 
+                           'Monitoreo recomendado. Aplicar medidas preventivas.' if diagnostico.nivel_riesgo == 'Medio' else 
+                           'Situación bajo control. Mantener medidas actuales.' }}
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<style>
+/* Tabla mejorada */
+.table thead th {
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.table tbody tr {
+    transition: all 0.2s;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Progress bar */
+.progress {
+    background-color: #e9ecef;
+}
+
+/* Badges */
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+/* Gap entre botones */
+.gap-2 {
+    gap: 0.5rem !important;
+}
+
+/* Modal mejorado */
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal {
+    z-index: 1055;
+}
+
+.modal-backdrop {
+    z-index: 1050;
+}
+</style>
+
+<script>
+function aplicarFiltros() {
+    const filtroRiesgo = document.getElementById('filtroRiesgo').value;
+    const filtroPlan = document.getElementById('filtroPlan').value;
+    const buscarEmpresa = document.getElementById('buscarEmpresa').value.toLowerCase();
+    
+    const filas = document.querySelectorAll('.fila-diagnostico');
+    let visibles = 0;
+    
+    filas.forEach(fila => {
+        const riesgo = fila.getAttribute('data-riesgo');
+        const plan = fila.getAttribute('data-plan');
+        const empresa = fila.getAttribute('data-empresa');
+        
+        let mostrar = true;
+        
+        if (filtroRiesgo !== 'todos' && riesgo !== filtroRiesgo) {
+            mostrar = false;
+        }
+        
+        if (filtroPlan !== 'todos' && plan !== filtroPlan) {
+            mostrar = false;
+        }
+        
+        if (buscarEmpresa && !empresa.includes(buscarEmpresa)) {
+            mostrar = false;
+        }
+        
+        fila.style.display = mostrar ? '' : 'none';
+        if (mostrar) visibles++;
+    });
+    
+    // Mostrar mensaje si no hay resultados
+    const tbody = document.querySelector('#tablaDiagnosticos tbody');
+    let mensajeNoResultados = document.getElementById('noResultados');
+    
+    if (visibles === 0) {
+        if (!mensajeNoResultados) {
+            mensajeNoResultados = document.createElement('tr');
+            mensajeNoResultados.id = 'noResultados';
+            mensajeNoResultados.innerHTML = '<td colspan="8" class="text-center py-4"><i class="fas fa-search"></i> No se encontraron resultados con los filtros aplicados</td>';
+            tbody.appendChild(mensajeNoResultados);
+        }
+    } else {
+        if (mensajeNoResultados) {
+            mensajeNoResultados.remove();
+        }
+    }
+}
+
+function limpiarFiltros() {
+    document.getElementById('filtroRiesgo').value = 'todos';
+    document.getElementById('filtroPlan').value = 'todos';
+    document.getElementById('buscarEmpresa').value = '';
+    aplicarFiltros();
+}
+
+// Prevenir múltiples modales
+document.addEventListener('show.bs.modal', function (event) {
+    const modals = document.querySelectorAll('.modal.show');
+    modals.forEach(modal => {
+        const bsModal = bootstrap.Modal.getInstance(modal);
+        if (bsModal) bsModal.hide();
+    });
+});
+
+// Limpiar backdrops
+document.addEventListener('hidden.bs.modal', function (event) {
+    const backdrops = document.querySelectorAll('.modal-backdrop');
+    backdrops.forEach(backdrop => backdrop.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+});
+</script>
+{% endblock %}

@@ -1,0 +1,489 @@
+/* cyberstyle.css - Estilos personalizados para CyberShield PyME */
+
+:root {
+  /* Colores principales - Azul corporativo (confianza, seguridad) */
+  --primary-blue: #1a4b8c;
+  --primary-blue-light: #2c6cb0;
+  --primary-blue-dark: #0d3a6e;
+  
+  /* Colores financieros - Verde (crecimiento, estabilidad) */
+  --finance-green: #28a745;
+  --finance-green-light: #34ce57;
+  --finance-green-dark: #1e7e34;
+  
+  /* Colores de seguridad - Naranja/Ambar (alerta, protección) */
+  --security-orange: #fd7e14;
+  --security-orange-light: #ff922b;
+  --security-orange-dark: #e8590c;
+  
+/* Colores de fondo sutiles */
+--bg-main: #f0f4f8;
+--bg-card: #f8fafc;
+--bg-section: #e1e8f0;
+--bg-footer: #1e293b;
+  
+  /* Colores de estado */
+  --success-color: #38b2ac;
+  --warning-color: #ed8936;
+  --danger-color: #e53e3e;
+  --info-color: #4299e1;
+  
+  /* Colores neutrales profesionales */
+  --neutral-dark: #2d3748;
+  --neutral-gray: #4a5568;
+  --neutral-light: #e2e8f0;
+}
+/* ESTILOS GENERALES */
+body {
+  background-color: var(--bg-main);
+  color: var(--neutral-dark);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+}
+
+/* NAVBAR MEJORADA */
+.navbar {
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%) !important;
+  border-bottom: 3px solid var(--security-orange);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.navbar-brand {
+    font-weight: 800;
+    font-size: 1.4rem;
+    letter-spacing: 1.5px;
+    font-family: 'Segoe UI Black', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--security-orange-light) 0%, var(--primary-blue-light) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 
+        0 0 3px var(--security-orange),
+        0 0 6px rgba(253, 126, 20, 0.3);
+    position: relative;
+    animation: matrixClean 4s infinite;
+}
+
+@keyframes matrixClean {
+    0%, 100% { 
+        transform: translate(0);
+        filter: brightness(1);
+    }
+    25% { 
+        transform: translate(0.5px, -0.5px);
+        filter: brightness(1.1);
+    }
+    50% { 
+        transform: translate(-0.5px, 0.5px);
+        filter: brightness(0.9);
+    }
+    75% { 
+        transform: translate(0.3px, -0.3px);
+        filter: brightness(1.05);
+    }
+}
+.navbar-brand::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        var(--security-orange-light) 50%, 
+        transparent 100%);
+    animation: cleanScan 3s ease-in-out infinite;
+}
+
+@keyframes cleanScan {
+    0% { 
+        transform: translateX(-100%); 
+        opacity: 0; 
+    }
+    50% { 
+        opacity: 0.8; 
+    }
+    100% { 
+        transform: translateX(100%); 
+        opacity: 0; 
+    }
+}
+
+.navbar-brand i {
+  color: var(--security-orange-light);
+  margin-right: 8px;
+}
+
+.nav-link {
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.nav-link:hover {
+  color: var(--security-orange-light) !important;
+  transform: translateY(-1px);
+}
+
+/*Botones de inicio de sesión y registro*/
+/* Estilos para los botones de login/registro */
+.nav-btn-register {
+    background: linear-gradient(135deg, var(--finance-green) 0%, var(--finance-green-light) 100%);
+    border: 2px solid var(--finance-green-light);
+    color: white !important;
+    font-weight: 600;
+    padding: 6px 16px;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.nav-btn-register:hover {
+    background: linear-gradient(135deg, var(--finance-green-dark) 0%, var(--finance-green) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+    color: white !important;
+}
+
+/* Estilo para el link de login */
+.navbar-nav .nav-link[href="/login"] {
+    font-weight: 600;
+    color: var(--security-orange-light) !important;
+    transition: all 0.3s ease;
+}
+
+.navbar-nav .nav-link[href="/login"]:hover {
+    color: var(--security-orange) !important;
+    transform: translateY(-1px);
+}
+
+/* Dropdown de diagnósticos mejorado */
+.nav-item.dropdown .dropdown-toggle {
+    font-weight: 600;
+}
+
+.nav-item.dropdown .dropdown-menu {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    padding: 8px;
+}
+
+.nav-item.dropdown .dropdown-item {
+    border-radius: 6px;
+    padding: 10px 15px;
+    margin: 2px 0;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.nav-item.dropdown .dropdown-item:hover {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%);
+    color: white;
+    transform: translateX(5px);
+}
+
+/* TARJETAS CON FONDOS SUAVES */
+.card {
+  background-color: var(--bg-card);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+}
+
+.card-header {
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%);
+  color: white;
+  font-weight: 600;
+  border: none;
+  padding: 15px 20px;
+}
+
+/* BOTONES PRINCIPALES */
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%);
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 10px 24px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(26, 75, 140, 0.3);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--primary-blue-dark) 0%, var(--primary-blue) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 75, 140, 0.4);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, var(--finance-green) 0%, var(--finance-green-light) 100%);
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 10px 24px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.btn-success:hover {
+  background: linear-gradient(135deg, var(--finance-green-dark) 0%, var(--finance-green) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+/* FORMULARIOS */
+.form-control, .form-select {
+  background-color: var(--bg-card);
+  border: 2px solid var(--neutral-light);
+  border-radius: 8px;
+  padding: 10px 15px;
+  transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+  background-color: var(--bg-card);
+  border-color: var(--primary-blue-light);
+  box-shadow: 0 0 0 0.2rem rgba(26, 75, 140, 0.25);
+}
+
+.form-label {
+  font-weight: 600;
+  color: var(--neutral-dark);
+  margin-bottom: 8px;
+}
+
+/* ALERTAS PERSONALIZADAS */
+.alert {
+  background-color: var(--bg-card);
+  border: none;
+  border-radius: 10px;
+  border-left: 4px solid;
+  font-weight: 500;
+}
+
+.alert-warning {
+  border-left-color: var(--warning-color);
+  color: #744210;
+}
+
+.alert-info {
+  border-left-color: var(--info-color);
+  color: #1a365d;
+}
+
+.alert-success {
+  border-left-color: var(--success-color);
+  color: #234e52;
+}
+
+.alert-danger {
+  border-left-color: var(--danger-color);
+  color: #742a2a;
+}
+
+/* BADGES DE CARACTERÍSTICAS */
+.badge.bg-warning {
+  background: linear-gradient(135deg, var(--security-orange) 0%, var(--security-orange-light) 100%) !important;
+  color: white !important;
+  font-weight: 600;
+  padding: 12px 20px !important;
+  border-radius: 25px;
+  box-shadow: 0 2px 8px rgba(253, 126, 20, 0.3);
+}
+
+/* ICONOS PRINCIPALES */
+.fa-shield-alt {
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--security-orange) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.fa-clipboard-list {
+  color: var(--primary-blue);
+}
+
+.fa-file-upload {
+  color: var(--finance-green);
+}
+
+/* FOOTER MEJORADO */
+footer {
+  background: linear-gradient(135deg, var(--bg-footer) 0%, #0f172a 100%) !important;
+  color: white;
+  margin-top: 60px !important;
+  border-top: 3px solid var(--primary-blue);
+}
+
+/* SECCIONES CON FONDOS ALTERNADOS */
+.bg-section {
+  background-color: var(--bg-section);
+  border-radius: 12px;
+  padding: 30px;
+}
+
+/* BADGES DE ROL/PLAN */
+.badge-role {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--security-orange) 0%, var(--finance-green) 100%);
+}
+
+/* EFECTOS DE SEGURIDAD VISUAL */
+.security-border {
+  border: 2px dashed var(--security-orange);
+  border-radius: 10px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(253, 126, 20, 0.05) 0%, rgba(26, 75, 140, 0.05) 100%);
+}
+
+.financial-highlight {
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.08) 0%, rgba(26, 75, 140, 0.08) 100%);
+  border-left: 4px solid var(--finance-green);
+  padding: 15px;
+  border-radius: 0 8px 8px 0;
+}
+
+/* MAIN CONTENT AREA */
+main.container {
+  background: linear-gradient(135deg, var(--bg-main) 0%, rgba(13, 110, 253, 0.25) 100%);
+  border-radius: 15px;
+  padding: 30px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .card:hover {
+    transform: none;
+  }
+  
+  .btn-primary:hover, .btn-success:hover {
+    transform: none;
+  }
+  
+  main.container {
+    padding: 15px;
+    margin-top: 10px;
+  }
+}
+
+/* ANIMACIONES SUAVES */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ESTILOS ESPECÍFICOS PARA DIAGNÓSTICO */
+.risk-level-high {
+  background: linear-gradient(135deg, #e53e3e 0%, #f56565 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.risk-level-medium {
+  background: linear-gradient(135deg, #ed8936 0%, #f6ad55 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.risk-level-low {
+  background: linear-gradient(135deg, #38b2ac 0%, #4fd1c7 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+/* MEJORAS VISUALES PARA TEXTO */
+.text-primary {
+  color: var(--primary-blue) !important;
+}
+.text-secondary {
+    --bs-text-opacity: 1;
+    color: #f8f9fa !important;
+}
+
+.text-muted {
+  color:rgb(133, 133, 133) !important;
+}
+
+/* SOMBRAS SUAVES PARA ELEMENTOS */
+.shadow-soft {
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08) !important;
+}
+
+/*tablas mejoradas*/
+.table-warning {
+    background-color: #fff3cd !important;
+    border-left: 4px solid #ffc107;
+}
+
+.has-anomaly {
+    animation: pulse-anomaly 2s infinite;
+}
+
+@keyframes pulse-anomaly {
+    0% { background-color: #fff3cd; }
+    50% { background-color: #ffeaa7; }
+    100% { background-color: #fff3cd; }
+}
+
+.text-danger.fw-bold {
+    font-weight: bold !important;
+    background-color: #f8d7da;
+    border-radius: 3px;
+    padding: 2px 4px;
+}
+
+/* Resaltar celdas con iconos de advertencia */
+td .fa-exclamation-circle {
+    animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+}
+
+/* Tooltips mejorados */
+[title] {
+    cursor: help;
+    position: relative;
+}
+
+[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background: #333;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+}

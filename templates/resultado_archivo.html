@@ -1,0 +1,87 @@
+<!-- templates/resultado_archivo.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card shadow">
+    <div class="card-header bg-{{ 'danger' if resultado.nivel_riesgo == 'Alto' else 'warning' if resultado.nivel_riesgo == 'Medio' else 'success' }} text-white">
+        <h4 class="mb-0"><i class="fas fa-file-excel"></i> Resultado del Análisis</h4>
+    </div>
+    <div class="card-body">
+        <!-- Información del archivo -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h5>Información del Archivo</h5>
+                <p><strong>Archivo:</strong> {{ resultado.archivo_nombre }}</p>
+                <p><strong>Registros analizados:</strong> {{ resultado.total_registros }}</p>
+                <p><strong>Columnas detectadas:</strong> {{ resultado.total_columnas }}</p>
+            </div>
+            <div class="col-md-6">
+                <h5>Evaluación de Riesgo</h5>
+                <p><strong>Puntuación:</strong> {{ resultado.puntuacion_riesgo }}/100</p>
+                <p><strong>Nivel de riesgo:</strong> 
+                    <span class="badge bg-{{ 'danger' if resultado.nivel_riesgo == 'Alto' else 'warning' if resultado.nivel_riesgo == 'Medio' else 'success' }}">
+                        {{ resultado.nivel_riesgo }}
+                    </span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Anomalías Detectadas -->
+        {% if resultado.anomalias %}
+        <div class="mb-4">
+            <h5><i class="fas fa-exclamation-triangle"></i> Anomalías Detectadas</h5>
+            <div class="list-group">
+                {% for anomalia in resultado.anomalias %}
+                <div class="list-group-item list-group-item-{{ 'danger' if 'URGENTE' in anomalia.tipo else 'warning' }}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ anomalia.tipo }}</h6>
+                            {% if anomalia.columna %}
+                            <small class="text-muted">Columna: {{ anomalia.columna }}</small>
+                            {% endif %}
+                        </div>
+                        <span class="badge bg-{{ 'danger' if 'URGENTE' in anomalia.tipo else 'warning' }}">
+                            {{ anomalia.cantidad if anomalia.cantidad else anomalia.porcentaje }}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i> No se detectaron anomalías significativas en el archivo.
+        </div>
+        {% endif %}
+
+        <!-- Recomendaciones -->
+        <div class="mb-4">
+            <h5><i class="fas fa-lightbulb"></i> Recomendaciones</h5>
+            <div class="alert alert-info">
+                {% if resultado.nivel_riesgo == 'Alto' %}
+                <strong>Acción recomendada:</strong> Revisar manualmente los datos y considerar una auditoría completa.
+                {% elif resultado.nivel_riesgo == 'Medio' %}
+                <strong>Acción recomendada:</strong> Monitorear periódicamente y validar datos sospechosos.
+                {% else %}
+                <strong>Acción recomendada:</strong> Mantener los controles actuales y realizar análisis periódicos.
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="text-center mt-4">
+            <a href="/upload" class="btn btn-success">
+                <i class="fas fa-upload"></i> Analizar Otro Archivo
+            </a>
+            <a href="/" class="btn btn-outline-secondary">
+                <i class="fas fa-home"></i> Volver al Inicio
+            </a>
+            {% if session.user_id %}
+            <a href="/perfil" class="btn btn-outline-primary">
+                <i class="fas fa-user"></i> Mi Perfil
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

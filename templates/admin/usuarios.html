@@ -1,0 +1,593 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">
+                <i class="fas fa-users text-primary"></i> Gestión de Usuarios
+            </h1>
+            <p class="text-muted mb-0">Administra todos los usuarios del sistema</p>
+        </div>
+        <div class="d-flex gap-2">
+            <!-- Botón Crear Usuario -->
+            <button type="button" 
+                    class="btn btn-success" 
+                    data-bs-toggle="modal" 
+                    data-bs-target="#crearUsuarioModal">
+                <i class="fas fa-user-plus"></i> Crear Usuario
+            </button>
+            <a href="/admin/dashboard" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Volver al Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Estadísticas Rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-users text-primary mb-2" style="font-size: 2rem;"></i>
+                    <h3 class="mb-0">{{ usuarios|length }}</h3>
+                    <small class="text-muted">Total Usuarios</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle text-success mb-2" style="font-size: 2rem;"></i>
+                    <h3 class="mb-0">{{ usuarios|selectattr('activo')|list|length }}</h3>
+                    <small class="text-muted">Usuarios Activos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-shield-alt text-danger mb-2" style="font-size: 2rem;"></i>
+                    <h3 class="mb-0">{{ usuarios|selectattr('rol', 'equalto', 'admin')|list|length }}</h3>
+                    <small class="text-muted">Administradores</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-crown text-warning mb-2" style="font-size: 2rem;"></i>
+                    <h3 class="mb-0">{{ usuarios|selectattr('plan', 'equalto', 'premium')|list|length }}</h3>
+                    <small class="text-muted">Usuarios Premium</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Usuarios -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list"></i> Lista de Usuarios
+                    </h5>
+                </div>
+                <div class="col-auto">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" id="searchInput" class="form-control border-start-0" 
+                               placeholder="Buscar usuario...">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="usersTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center" style="width: 60px;">ID</th>
+                            <th>Usuario</th>
+                            <th>Empresa</th>
+                            <th class="text-center">Rol</th>
+                            <th class="text-center">Plan</th>
+                            <th class="text-center">Actividad</th>
+                            <th class="text-center">Estado</th>
+                            <th class="text-center" style="width: 150px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for usuario in usuarios %}
+                        <tr>
+                            <!-- ID -->
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark">#{{ usuario.id }}</span>
+                            </td>
+
+                            <!-- Usuario -->
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle me-2">
+                                        {{ usuario.username[0].upper() }}
+                                    </div>
+                                    <div>
+                                        <strong class="d-block">{{ usuario.username }}</strong>
+                                        <small class="text-muted">{{ usuario.email }}</small>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Empresa -->
+                            <td>
+                                <div>
+                                    <strong>{{ usuario.empresa }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar-alt"></i> 
+                                        {{ usuario.fecha_registro.strftime('%d/%m/%Y') if usuario.fecha_registro else 'N/A' }}
+                                    </small>
+                                </div>
+                            </td>
+
+                            <!-- Rol -->
+                            <td class="text-center">
+                                <span class="badge {{ 'bg-danger' if usuario.rol == 'admin' else 'bg-primary' }} px-3 py-2">
+                                    <i class="fas {{ 'fa-shield-alt' if usuario.rol == 'admin' else 'fa-user' }}"></i>
+                                    {{ usuario.rol|upper }}
+                                </span>
+                            </td>
+
+                            <!-- Plan -->
+                            <td class="text-center">
+                                <span class="badge {{ 'bg-warning' if usuario.plan == 'empresarial' else 'bg-success' if usuario.plan == 'premium' else 'bg-secondary' }} px-3 py-2">
+                                    {% if usuario.plan == 'empresarial' %}
+                                        <i class="fas fa-building"></i>
+                                    {% elif usuario.plan == 'premium' %}
+                                        <i class="fas fa-crown"></i>
+                                    {% else %}
+                                        <i class="fas fa-tag"></i>
+                                    {% endif %}
+                                    {{ usuario.plan|upper }}
+                                </span>
+                            </td>
+
+                            <!-- Actividad -->
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <span class="badge bg-info rounded-pill" title="Diagnósticos">
+                                        <i class="fas fa-clipboard-list"></i> {{ usuario.diagnosticos_realizados }}
+                                    </span>
+                                    <span class="badge bg-success rounded-pill" title="Archivos">
+                                        <i class="fas fa-file"></i> {{ usuario.archivos_analizados }}
+                                    </span>
+                                </div>
+                            </td>
+
+                            <!-- Estado -->
+                            <td class="text-center">
+                                <span class="badge {{ 'bg-success' if usuario.activo else 'bg-danger' }} px-3 py-2">
+                                    <i class="fas {{ 'fa-check-circle' if usuario.activo else 'fa-times-circle' }}"></i>
+                                    {{ 'ACTIVO' if usuario.activo else 'INACTIVO' }}
+                                </span>
+                            </td>
+
+                            <!-- Acciones -->
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <!-- Cambiar Plan -->
+                                    <button type="button" 
+                                            class="btn btn-sm btn-warning text-white" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#planModal{{ usuario.id }}"
+                                            data-bs-toggle="tooltip"
+                                            title="Cambiar Plan">
+                                        <i class="fas fa-crown"></i>
+                                        <span class="d-none d-lg-inline ms-1">Plan</span>
+                                    </button>
+                                    
+                                    <!-- Cambiar Rol -->
+                                    <button type="button" 
+                                            class="btn btn-sm btn-info text-white" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#rolModal{{ usuario.id }}"
+                                            data-bs-toggle="tooltip"
+                                            title="Cambiar Rol">
+                                        <i class="fas fa-user-shield"></i>
+                                        <span class="d-none d-lg-inline ms-1">Rol</span>
+                                    </button>
+                                    
+                                    <!-- Activar/Desactivar -->
+                                    <a href="/admin/toggle_usuario/{{ usuario.id }}" 
+                                       class="btn btn-sm btn-{{ 'danger' if usuario.activo else 'success' }}"
+                                       data-bs-toggle="tooltip"
+                                       title="{{ 'Desactivar Usuario' if usuario.activo else 'Activar Usuario' }}"
+                                       onclick="return confirm('¿Confirma {{ 'desactivar' if usuario.activo else 'activar' }} a {{ usuario.username }}?')">
+                                        <i class="fas {{ 'fa-times-circle' if usuario.activo else 'fa-check-circle' }}"></i>
+                                        <span class="d-none d-lg-inline ms-1">{{ 'Desactivar' if usuario.activo else 'Activar' }}</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- MODALES FUERA DEL TR -->
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CREAR USUARIO -->
+    <div class="modal fade" id="crearUsuarioModal" tabindex="-1" aria-labelledby="crearUsuarioModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="crearUsuarioModalLabel">
+                        <i class="fas fa-user-plus"></i> Crear Nuevo Usuario
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="/admin/crear_usuario" method="POST">
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="mb-3"><i class="fas fa-user"></i> Información Personal</h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Usuario *</label>
+                                    <input type="text" name="username" class="form-control" required 
+                                           placeholder="Nombre de usuario" minlength="4">
+                                    <small class="text-muted">Mínimo 4 caracteres</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Email *</label>
+                                    <input type="email" name="email" class="form-control" required 
+                                           placeholder="correo@empresa.com">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Empresa *</label>
+                                    <input type="text" name="empresa" class="form-control" required 
+                                           placeholder="Nombre de la empresa">
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <h6 class="mb-3"><i class="fas fa-cog"></i> Configuración</h6>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Contraseña *</label>
+                                    <input type="password" name="password" class="form-control" required 
+                                           placeholder="Contraseña segura" minlength="6">
+                                    <small class="text-muted">Mínimo 6 caracteres</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Confirmar Contraseña *</label>
+                                    <input type="password" name="confirm_password" class="form-control" required 
+                                           placeholder="Repetir contraseña" minlength="6">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Rol *</label>
+                                    <select name="rol" class="form-select" required>
+                                        <option value="pyme">👤 Usuario PyME</option>
+                                        <option value="admin">🛡️ Administrador</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Plan *</label>
+                                    <select name="plan" class="form-select" required>
+                                        <option value="gratuito">🆓 Plan Gratuito</option>
+                                        <option value="premium">⭐ Plan Premium</option>
+                                        <option value="empresarial">🏢 Plan Empresarial</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle"></i>
+                            <small>
+                                <strong>Información:</strong> El usuario recibirá acceso inmediato al sistema con la configuración seleccionada. 
+                                Puedes modificar estos ajustes en cualquier momento.
+                            </small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Crear Usuario
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALES PARA USUARIOS EXISTENTES -->
+    {% for usuario in usuarios %}
+    <!-- Modal Cambiar Plan -->
+    <div class="modal fade" id="planModal{{ usuario.id }}" tabindex="-1" aria-labelledby="planModalLabel{{ usuario.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-white">
+                    <h5 class="modal-title" id="planModalLabel{{ usuario.id }}">
+                        <i class="fas fa-crown"></i> Cambiar Plan de Usuario
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="/admin/cambiar_plan/{{ usuario.id }}" method="POST">
+                    <div class="modal-body">
+                        <div class="text-center mb-4">
+                            <div class="avatar-circle-lg mb-3 mx-auto">
+                                {{ usuario.username[0].upper() }}
+                            </div>
+                            <h5 class="mb-1">{{ usuario.username }}</h5>
+                            <small class="text-muted">{{ usuario.empresa }}</small>
+                            <div class="mt-2">
+                                <span class="badge bg-secondary">Plan Actual: {{ usuario.plan|upper }}</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-box"></i> Seleccionar Nuevo Plan:
+                            </label>
+                            <select name="plan" class="form-select form-select-lg" required>
+                                <option value="gratuito" {{ 'selected' if usuario.plan == 'gratuito' else '' }}>
+                                    🆓 Plan Gratuito - $0/mes
+                                </option>
+                                <option value="premium" {{ 'selected' if usuario.plan == 'premium' else '' }}>
+                                    ⭐ Plan Premium - $49.900/mes
+                                </option>
+                                <option value="empresarial" {{ 'selected' if usuario.plan == 'empresarial' else '' }}>
+                                    🏢 Plan Empresarial - Personalizado
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle"></i>
+                            <small><strong>Nota:</strong> Los cambios se aplicarán inmediatamente y el usuario tendrá acceso a las funcionalidades del nuevo plan.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-warning text-white">
+                            <i class="fas fa-save"></i> Actualizar Plan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cambiar Rol -->
+    <div class="modal fade" id="rolModal{{ usuario.id }}" tabindex="-1" aria-labelledby="rolModalLabel{{ usuario.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="rolModalLabel{{ usuario.id }}">
+                        <i class="fas fa-user-shield"></i> Cambiar Rol de Usuario
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="/admin/cambiar_rol/{{ usuario.id }}" method="POST">
+                    <div class="modal-body">
+                        <div class="text-center mb-4">
+                            <div class="avatar-circle-lg mb-3 mx-auto">
+                                {{ usuario.username[0].upper() }}
+                            </div>
+                            <h5 class="mb-1">{{ usuario.username }}</h5>
+                            <small class="text-muted">{{ usuario.empresa }}</small>
+                            <div class="mt-2">
+                                <span class="badge {{ 'bg-danger' if usuario.rol == 'admin' else 'bg-primary' }}">
+                                    Rol Actual: {{ usuario.rol|upper }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-shield-alt"></i> Seleccionar Nuevo Rol:
+                            </label>
+                            <select name="rol" class="form-select form-select-lg" required>
+                                <option value="pyme" {{ 'selected' if usuario.rol == 'pyme' else '' }}>
+                                    👤 Usuario PyME (Acceso Estándar)
+                                </option>
+                                <option value="admin" {{ 'selected' if usuario.rol == 'admin' else '' }}>
+                                    🛡️ Administrador (Acceso Total)
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="alert alert-warning mb-0">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <small><strong>⚠️ Precaución:</strong> Los administradores tienen acceso completo al sistema, incluyendo la gestión de usuarios y visualización de todos los datos.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-info text-white">
+                            <i class="fas fa-save"></i> Actualizar Rol
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Estilos (mantener los mismos) -->
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.avatar-circle-lg {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 2rem;
+}
+
+.table thead th {
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.table tbody tr {
+    transition: all 0.2s;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+.gap-2 {
+    gap: 0.5rem !important;
+}
+
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal {
+    z-index: 1055;
+}
+
+.modal-backdrop {
+    z-index: 1050;
+}
+
+#searchInput {
+    border-left: none;
+}
+
+#searchInput:focus {
+    box-shadow: none;
+    border-color: #ced4da;
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    min-width: 40px;
+}
+
+.btn i {
+    pointer-events: none;
+}
+
+.tooltip {
+    z-index: 1060;
+}
+</style>
+
+<!-- Scripts (mantener los mismos) -->
+<script>
+// Buscador en tiempo real
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    const searchValue = this.value.toLowerCase();
+    const table = document.getElementById('usersTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const text = row.textContent.toLowerCase();
+        
+        if (text.includes(searchValue)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    }
+});
+
+// Inicializar tooltips de Bootstrap
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+// Prevenir múltiples modales abiertos
+document.addEventListener('show.bs.modal', function (event) {
+    const modals = document.querySelectorAll('.modal.show');
+    modals.forEach(modal => {
+        const bsModal = bootstrap.Modal.getInstance(modal);
+        if (bsModal) {
+            bsModal.hide();
+        }
+    });
+});
+
+// Limpiar backdrop cuando se cierra un modal
+document.addEventListener('hidden.bs.modal', function (event) {
+    const backdrops = document.querySelectorAll('.modal-backdrop');
+    backdrops.forEach(backdrop => {
+        backdrop.remove();
+    });
+    
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+});
+
+// Validación de contraseñas en el modal de crear usuario
+document.addEventListener('DOMContentLoaded', function() {
+    const crearUsuarioForm = document.querySelector('form[action="/admin/crear_usuario"]');
+    if (crearUsuarioForm) {
+        crearUsuarioForm.addEventListener('submit', function(e) {
+            const password = this.querySelector('input[name="password"]').value;
+            const confirmPassword = this.querySelector('input[name="confirm_password"]').value;
+            
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                alert('Las contraseñas no coinciden. Por favor, verifica.');
+                return false;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

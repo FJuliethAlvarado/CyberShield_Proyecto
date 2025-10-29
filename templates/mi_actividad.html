@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1"><i class="fas fa-history"></i> Mi Actividad Completa</h1>
+            <p class="text-muted mb-0">{{ total_actividades }} actividades encontradas</p>
+        </div>
+        <a href="/perfil" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Volver al Perfil
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if actividades %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Descripción</th>
+                            <th>Resultado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for actividad in actividades %}
+                        <tr>
+                            <td>
+                                <small class="text-muted">{{ actividad.fecha_analisis.strftime('%d/%m/%Y') }}</small><br>
+                                <small>{{ actividad.fecha_analisis.strftime('%H:%M') }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'primary' if actividad.tipo == 'diagnostico' else 'success' }} p-2">
+                                    <i class="fas fa-{{ 'clipboard-list' if actividad.tipo == 'diagnostico' else 'file-excel' }} me-1"></i>
+                                    {{ 'Diagnóstico' if actividad.tipo == 'diagnostico' else 'Análisis' }}
+                                </span>
+                            </td>
+                            <td>
+                                <strong>
+                                    {% if actividad.tipo == 'diagnostico' %}
+                                    {{ actividad.nombre }}
+                                    {% if actividad.tipo_riesgo %}
+                                    <br><small class="text-muted">{{ actividad.tipo_riesgo }}</small>
+                                    {% endif %}
+                                    {% else %}
+                                    {{ actividad.nombre[:50] }}{{ '...' if actividad.nombre|length > 50 else '' }}
+                                    {% endif %}
+                                </strong>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'danger' if actividad.nivel_riesgo in ['Crítico','Alto'] else 'warning' if actividad.nivel_riesgo == 'Medio' else 'success' }} p-2">
+                                    {{ actividad.nivel_riesgo }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if actividad.tipo == 'diagnostico' %}
+                                <a href="#" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i> Ver
+                                </a>
+                                {% else %}
+                                <a href="#" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-chart-bar"></i> Resultados
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PAGINACIÓN -->
+            {% if total_paginas > 1 %}
+            <nav aria-label="Paginación de actividades" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <!-- Botón Anterior -->
+                    <li class="page-item {% if pagina_actual == 1 %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('mi_actividad', pagina=pagina_actual-1) if pagina_actual > 1 else '#' }}">
+                            <i class="fas fa-chevron-left"></i> Anterior
+                        </a>
+                    </li>
+
+                    <!-- Números de página -->
+                    {% for pagina in range(1, total_paginas + 1) %}
+                        {% if pagina == pagina_actual %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ pagina }}</span>
+                        </li>
+                        {% elif pagina >= pagina_actual - 2 and pagina <= pagina_actual + 2 %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('mi_actividad', pagina=pagina) }}">{{ pagina }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Botón Siguiente -->
+                    <li class="page-item {% if pagina_actual == total_paginas %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('mi_actividad', pagina=pagina_actual+1) if pagina_actual < total_paginas else '#' }}">
+                            Siguiente <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Información de paginación -->
+            <div class="text-center text-muted mt-2">
+                <small>
+                    Mostrando {{ ((pagina_actual - 1) * 10) + 1 }} - 
+                    {{ min(pagina_actual * 10, total_actividades) }} de {{ total_actividades }} actividades
+                </small>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <!-- SIN ACTIVIDAD -->
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No hay actividad registrada</h4>
+                <p class="text-muted">Realiza tu primer diagnóstico para comenzar</p>
+                <a href="/diagnostico" class="btn btn-primary mt-2">
+                    <i class="fas fa-clipboard-list"></i> Comenzar Diagnóstico
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

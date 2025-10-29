@@ -1,0 +1,327 @@
+/* static/css/styles-quienes-somos.css */
+/* CSS EXCLUSIVO para la página ¿Quiénes Somos? - Usando paleta CyberShield */
+
+:root {
+  /* Usando los colores de cyberstyle.css */
+  --qs-primary: var(--primary-blue, #1a4b8c);
+  --qs-primary-light: var(--primary-blue-light, #2c6cb0);
+  --qs-primary-dark: var(--primary-blue-dark, #0d3a6e);
+  
+  --qs-finance: var(--finance-green, #28a745);
+  --qs-finance-light: var(--finance-green-light, #34ce57);
+  --qs-finance-dark: var(--finance-green-dark, #1e7e34);
+  
+  --qs-security: var(--security-orange, #fd7e14);
+  --qs-security-light: var(--security-orange-light, #ff922b);
+  --qs-security-dark: var(--security-orange-dark, #e8590c);
+  
+  --qs-bg-main: var(--bg-main, #f0f4f8);
+  --qs-bg-card: var(--bg-card, #f8fafc);
+  --qs-bg-section: var(--bg-section, #e1e8f0);
+  
+  --qs-success: var(--success-color, #38b2ac);
+  --qs-warning: var(--warning-color, #ed8936);
+  --qs-danger: var(--danger-color, #e53e3e);
+  --qs-info: var(--info-color, #4299e1);
+  
+  --qs-neutral-dark: var(--neutral-dark, #2d3748);
+  --qs-neutral-gray: var(--neutral-gray, #4a5568);
+  --qs-neutral-light: var(--neutral-light, #e2e8f0);
+}
+
+/* ========== ANIMACIONES ========== */
+.qs-entrada {
+    opacity: 0;
+    transform: translateY(30px);
+    animation: qsFadeInUp 0.8s ease forwards;
+}
+
+.qs-entrada-1 { animation-delay: 0.1s; }
+.qs-entrada-2 { animation-delay: 0.3s; }
+.qs-entrada-3 { animation-delay: 0.5s; }
+.qs-entrada-4 { animation-delay: 0.7s; }
+
+@keyframes qsFadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========== HEADER ESPECIAL ========== */
+.qs-header {
+    background: linear-gradient(135deg, var(--qs-primary) 0%, var(--qs-primary-dark) 100%) !important;
+    position: relative;
+    overflow: hidden;
+    border: none !important;
+}
+
+.qs-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,100 Z" fill="rgba(255,255,255,0.1)"/></svg>');
+    background-size: cover;
+}
+
+.qs-header-content {
+    position: relative;
+    z-index: 2;
+}
+
+/* ========== TARJETAS PERSONALIZADAS ========== */
+.qs-card {
+    background: var(--qs-bg-card);
+    border: 1px solid var(--qs-neutral-light);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.qs-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.6s ease;
+}
+
+.qs-card:hover::before {
+    left: 100%;
+}
+
+.qs-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+    border-color: var(--qs-primary-light);
+}
+
+/* ========== ICONOS CON COLORES TEMÁTICOS ========== */
+.qs-feature-icon {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    position: relative;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    transition: all 0.4s ease;
+}
+
+/* Icono Contable - Azul corporativo */
+.qs-icon-contable {
+    background: linear-gradient(135deg, var(--qs-primary), var(--qs-primary-dark));
+    color: white;
+}
+
+/* Icono Financiero - Verde financiero */
+.qs-icon-financiero {
+    background: linear-gradient(135deg, var(--qs-finance), var(--qs-finance-dark));
+    color: white;
+}
+
+/* Icono Ciberseguridad - Naranja seguridad */
+.qs-icon-ciberseguridad {
+    background: linear-gradient(135deg, var(--qs-security), var(--qs-security-dark));
+    color: white;
+}
+
+.qs-feature-icon:hover {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+}
+
+/* ========== LISTA DE CARACTERÍSTICAS ========== */
+.qs-feature-list {
+    list-style: none;
+    padding: 0;
+}
+
+.qs-feature-item {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--qs-neutral-light);
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.qs-feature-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.qs-feature-item:hover {
+    background: rgba(26, 75, 140, 0.05);
+    transform: translateX(8px);
+}
+
+.qs-feature-icon-small {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    background: linear-gradient(135deg, var(--qs-primary), var(--qs-primary-dark));
+    color: white;
+    font-size: 0.9rem;
+}
+
+/* ========== SECCIÓN UNIVERSITARIA ========== */
+.qs-universidad-card {
+    background: linear-gradient(135deg, var(--qs-primary), var(--qs-primary-dark));
+    color: white;
+    border: none;
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+}
+
+.qs-universidad-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: qsRotate 20s linear infinite;
+}
+
+@keyframes qsRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.qs-universidad-content {
+    position: relative;
+    z-index: 2;
+}
+
+/* ========== BOTONES PERSONALIZADOS ========== */
+.qs-btn-primary {
+    background: linear-gradient(135deg, var(--qs-primary), var(--qs-primary-dark));
+    border: none;
+    border-radius: 8px;
+    padding: 12px 30px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(26, 75, 140, 0.3);
+    color: white;
+}
+
+.qs-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(26, 75, 140, 0.4);
+    background: linear-gradient(135deg, var(--qs-primary-light), var(--qs-primary));
+    color: white;
+}
+
+.qs-btn-outline {
+    border: 2px solid var(--qs-primary);
+    color: var(--qs-primary);
+    border-radius: 8px;
+    padding: 12px 30px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    background: transparent;
+}
+
+.qs-btn-outline:hover {
+    background: var(--qs-primary);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(26, 75, 140, 0.3);
+}
+
+/* ========== EFECTOS DE TEXTO ========== */
+.qs-text-gradient {
+    background: linear-gradient(135deg, var(--qs-primary), var(--qs-primary-dark));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 600;
+}
+
+.qs-text-finance {
+    background: linear-gradient(135deg, var(--qs-finance), var(--qs-finance-dark));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.qs-text-security {
+    background: linear-gradient(135deg, var(--qs-security), var(--qs-security-dark));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ========== BADGES TEMÁTICOS ========== */
+.qs-badge-contable {
+    background: var(--qs-primary);
+    color: white;
+}
+
+.qs-badge-financiero {
+    background: var(--qs-finance);
+    color: white;
+}
+
+.qs-badge-ciberseguridad {
+    background: var(--qs-security);
+    color: white;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+    .qs-feature-icon {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .qs-feature-icon i {
+        font-size: 1.5rem !important;
+    }
+    
+    .qs-card:hover {
+        transform: translateY(-4px);
+    }
+    
+    .qs-feature-item:hover {
+        transform: translateX(4px);
+    }
+    
+    .qs-header .display-4 {
+        font-size: 2rem;
+    }
+}
+
+/* ========== UTILIDADES ========== */
+.qs-shadow-sm {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+}
+
+.qs-shadow-md {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.07) !important;
+}
+
+.qs-shadow-lg {
+    box-shadow: 0 10px 15px rgba(0,0,0,0.1) !important;
+}
+
+/* Efecto de brillo sutil en hover */
+.qs-glow:hover {
+    filter: drop-shadow(0 0 8px rgba(26, 75, 140, 0.3));
+}

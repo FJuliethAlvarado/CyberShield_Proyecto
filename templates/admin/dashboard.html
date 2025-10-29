@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-tachometer-alt"></i> Panel de Administración</h1>
+        <div class="btn-group">
+            <a href="/admin/usuarios" class="btn btn-outline-primary">
+                <i class="fas fa-users"></i> Usuarios
+            </a>
+            <a href="/admin/diagnosticos" class="btn btn-outline-success">
+                <i class="fas fa-clipboard-list"></i> Diagnósticos
+            </a>
+            <a href="/admin/archivos" class="btn btn-outline-info">
+                <i class="fas fa-file-upload"></i> Archivos
+            </a>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ total_usuarios }}</h4>
+                            <p class="mb-0">Total Usuarios</p>
+                        </div>
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ total_diagnosticos }}</h4>
+                            <p class="mb-0">Diagnósticos</p>
+                        </div>
+                        <i class="fas fa-clipboard-list fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ total_archivos }}</h4>
+                            <p class="mb-0">Archivos Analizados</p>
+                        </div>
+                        <i class="fas fa-file-upload fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ usuarios_plan|length }}</h4>
+                            <p class="mb-0">Planes Activos</p>
+                        </div>
+                        <i class="fas fa-crown fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Usuarios por Plan -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Usuarios por Plan</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Plan</th>
+                                    <th>Usuarios</th>
+                                    <th>Porcentaje</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for plan in usuarios_plan %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if plan.plan == 'premium' else 'secondary' if plan.plan == 'gratuito' else 'primary' }}">
+                                            {{ plan.plan|title }}
+                                        </span>
+                                    </td>
+                                    <td>{{ plan.cantidad }}</td>
+                                    <td>{{ "%.1f"|format((plan.cantidad / total_usuarios) * 100) }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Últimos Diagnósticos -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Últimos Diagnósticos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Empresa</th>
+                                    <th>Riesgo</th>
+                                    <th>Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for diag in ultimos_diagnosticos %}
+                                <tr>
+                                    <td>{{ diag.username }}</td>
+                                    <td>{{ diag.empresa }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'danger' if diag.nivel_riesgo == 'Crítico' else 'warning' if diag.nivel_riesgo == 'Alto' else 'info' if diag.nivel_riesgo == 'Medio' else 'success' }}">
+                                            {{ diag.nivel_riesgo }}
+                                        </span>
+                                    </td>
+                                    <td>{{ diag.fecha_analisis.strftime('%d/%m/%Y') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actividad Mensual -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Actividad Mensual</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Mes</th>
+                                    <th>Diagnósticos</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mes in diagnosticos_mes %}
+                                <tr>
+                                    <td>{{ mes.mes }}</td>
+                                    <td>{{ mes.total }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

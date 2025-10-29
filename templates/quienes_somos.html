@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='/quienes_somos.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow-lg border-0">
+            <!-- Header con clase personalizada -->
+            <div class="card-header qs-header py-4">
+                <div class="text-center qs-header-content">
+                    <i class="fas fa-building fa-2x mb-3 text-white"></i>
+                    <h1 class="h2 mb-2 text-white">¿Quiénes Somos?</h1>
+                    <p class="mb-0 text-white opacity-75">Conoce más sobre CyberShield PyME</p>
+                </div>
+            </div>
+
+            <div class="card-body p-5">
+                <!-- Misión y Visión con animaciones -->
+                <div class="row mb-5">
+                    <div class="col-md-6 mb-4 qs-entrada qs-entrada-1">
+                        <div class="card h-100 qs-card">
+                            <div class="card-body text-center p-4">
+                                <div class="qs-feature-icon qs-icon-contable">
+                                    <i class="fas fa-bullseye fa-2x text-white"></i>
+                                </div>
+                                <h4 class="card-title qs-text-gradient">Nuestra Misión</h4>
+                                <p class="card-text">
+                                    Democratizar el acceso a herramientas avanzadas de análisis contable, 
+                                    financiero y de ciberseguridad para las PyMEs latinoamericanas.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4 qs-entrada qs-entrada-2">
+                        <div class="card h-100 qs-card">
+                            <div class="card-body text-center p-4">
+                                <div class="qs-feature-icon qs-icon-financiero">
+                                    <i class="fas fa-eye fa-2x text-white"></i>
+                                </div>
+                                <h4 class="card-title qs-text-gradient">Nuestra Visión</h4>
+                                <p class="card-text">
+                                    Ser la plataforma líder en análisis integral de riesgos empresariales 
+                                    para PyMEs en Latinoamérica.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Qué Hacemos -->
+                <div class="row mb-5">
+                    <div class="col-12 qs-entrada qs-entrada-3">
+                        <h3 class="text-center mb-4 qs-text-gradient">¿Qué Hacemos?</h3>
+                        <div class="row">
+                            <div class="col-md-4 text-center mb-4">
+                                <div class="qs-feature-icon qs-icon-contable">
+                                    <i class="fas fa-calculator fa-2x text-white"></i>
+                                </div>
+                                <h5>Análisis Contable</h5>
+                                <p class="text-muted">
+                                    Detección automática de fraudes, errores y anomalías.
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-center mb-4">
+                                <div class="qs-feature-icon qs-icon-financiero">
+                                    <i class="fas fa-chart-line fa-2x text-white"></i>
+                                </div>
+                                <h5>Análisis Financiero</h5>
+                                <p class="text-muted">
+                                    Evaluación de salud financiera y riesgos económicos.
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-center mb-4">
+                                <div class="qs-feature-icon qs-icon-ciberseguridad">
+                                    <i class="fas fa-shield-alt fa-2x text-white"></i>
+                                </div>
+                                <h5>Ciberseguridad</h5>
+                                <p class="text-muted">
+                                    Protección de datos y detección de vulnerabilidades.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Por qué Elegirnos con lista personalizada -->
+                <div class="row mb-5">
+                    <div class="col-12 qs-entrada qs-entrada-4">
+                        <h3 class="text-center mb-4 qs-text-gradient">¿Por Qué Elegirnos?</h3>
+                        <div class="qs-feature-list">
+                            <div class="qs-feature-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="qs-feature-icon-small">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Accesible para PyMEs</h6>
+                                        <p class="text-muted mb-0">Sin costos prohibitivos ni complejidades técnicas.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="qs-feature-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="qs-feature-icon-small">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Análisis Integral</h6>
+                                        <p class="text-muted mb-0">Combinamos contabilidad, finanzas y ciberseguridad.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="qs-feature-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="qs-feature-icon-small">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Enfoque Latinoamericano</h6>
+                                        <p class="text-muted mb-0">Diseñado para la realidad regional.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección universitaria con diseño especial -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card qs-universidad-card">
+                            <div class="card-body text-center p-5 qs-universidad-content">
+                                <i class="fas fa-university fa-3x mb-3 text-white"></i>
+                                <h4 class="text-white mb-3">Proyecto Universitario</h4>
+                                <p class="mb-0 text-white opacity-90">
+                                    CyberShield PyME nace como proyecto de emprendimiento en la Universidad de Cundinamarca
+                                    extensión Chía, con el objetivo de llevar tecnología avanzada de análisis empresarial a las pequeñas y 
+                                    medianas empresas de nuestra región.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CTA con botones personalizados -->
+                <div class="text-center mt-5">
+                    {% if session.user_id %}
+                    <a href="/upload" class="btn qs-btn-primary me-3">
+                        <i class="fas fa-upload me-2"></i>Comenzar Análisis
+                    </a>
+                    {% else %}
+                    <a href="/register" class="btn qs-btn-primary me-3">
+                        <i class="fas fa-user-plus me-2"></i>Registrarse Gratis
+                    </a>
+                    <a href="/login" class="btn qs-btn-outline">
+                        <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

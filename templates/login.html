@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card" style="max-width: 550px;">
+        <!-- Header -->
+        <div class="auth-header">
+            <i class="fas fa-shield-alt auth-icon"></i>
+            <h2 class="auth-title">Iniciar Sesión</h2>
+            <p class="auth-subtitle">Accede a tu cuenta de CyberShield</p>
+        </div>
+
+        <!-- Body -->
+        <div class="auth-body">
+            <!-- Formulario -->
+            <form class="auth-form" method="POST" action="/login">
+                <!-- Usuario -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-user"></i> Usuario
+                    </label>
+                    <input type="text" name="username" class="form-control" required autofocus>
+                </div>
+
+                <!-- Contraseña -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-lock"></i> Contraseña
+                    </label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+
+                <!-- Recordarme -->
+                <div class="auth-options">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="remember">
+                        <label class="form-check-label" for="remember">Recordarme</label>
+                    </div>
+                </div>
+
+                <!-- Botón de login -->
+                <button type="submit" class="auth-btn">
+                    <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+                </button>
+            </form>
+
+            <!-- Links -->
+            <div class="auth-links">
+                <p class="mb-3">¿No tienes cuenta? <a href="/register" class="auth-link">Regístrate aquí</a></p>
+            </div>
+
+            <!-- Separador -->
+            <div class="text-center my-4">
+                <span class="text-muted">o</span>
+            </div>
+
+            <!-- Acceso como invitado -->
+            <div class="text-center">
+                <a href="/" class="btn btn-outline-secondary w-100" style="padding: 12px; border-radius: 12px;">
+                    <i class="fas fa-user-secret"></i> Continuar como Invitado
+                </a>
+                <small class="text-muted d-block mt-2">2 diagnósticos gratis sin registro</small>
+            </div>
+
+            <!-- Usuarios de prueba -->
+            <div class="alert alert-info auth-alert mt-4 mb-0">
+                <small>
+                    <strong>Usuarios de prueba:</strong><br>
+                    • <code>admin</code> / <code>admin123</code> (Admin)<br>
+                    • <code>demo</code> / <code>demo123</code> (Gratuito)<br>
+                    • <code>premium</code> / <code>premium123</code> (Premium)
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

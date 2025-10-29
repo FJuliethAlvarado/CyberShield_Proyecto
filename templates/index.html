@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="text-center mb-5">
+    <i class="fas fa-shield-alt text-primary" style="font-size: 5rem;"></i>
+    <h1 class="mt-3">CyberShield PyME</h1>
+    <p class="lead text-muted">Sistema de Diagnóstico de Ciberseguridad para PyMEs Colombianas</p>
+</div>
+
+<!-- Badges de características -->
+<div class="row text-center mb-5">
+    <div class="col-md-4">
+        <span class="badge bg-warning text-dark p-3">
+            <i class="fas fa-check-circle"></i> Análisis Integral
+        </span>
+    </div>
+    <div class="col-md-4">
+        <span class="badge bg-warning text-dark p-3">
+            <i class="fas fa-lock"></i> Datos Confidenciales
+        </span>
+    </div>
+    <div class="col-md-4">
+        <span class="badge bg-warning text-dark p-3">
+            <i class="fas fa-chart-line"></i> Reportes Detallados
+        </span>
+    </div>
+</div>
+
+<!-- Opciones principales -->
+<div class="row g-4">
+    <!-- Diagnóstico Manual -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-clipboard-list text-primary" style="font-size: 4rem;"></i>
+                <h3 class="mt-3">Diagnóstico Manual</h3>
+                <p class="text-muted">Evalúa los riesgos cibernéticos completando un formulario guiado</p>
+                
+                <ul class="list-unstyled text-start mb-4">
+                    <li class="mb-2"><i class="fas fa-check text-success"></i> Evaluación rápida (5-10 min)</li>
+                    <li class="mb-2"><i class="fas fa-check text-success"></i> Análisis de vulnerabilidades</li>
+                    <li class="mb-2"><i class="fas fa-check text-success"></i> Recomendaciones personalizadas</li>
+                    <li class="mb-2"><i class="fas fa-check text-success"></i> Estimación de impacto</li>
+                </ul>
+
+                {% if not session.user_id %}
+                <div class="alert alert-info">
+                    <small><i class="fas fa-gift"></i> <strong>Modo Invitado:</strong> 2 diagnósticos gratis sin registro</small>
+                </div>
+                {% endif %}
+
+                <a href="/diagnostico" class="btn btn-primary btn-lg w-100">
+                    <i class="fas fa-arrow-right"></i> Iniciar Diagnóstico
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Análisis de Archivos -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-file-upload text-success" style="font-size: 4rem;"></i>
+                <h3 class="mt-3">Análisis de Datos</h3>
+                <p class="text-muted">Sube tus archivos contables para un análisis automatizado</p>
+                
+                <ul class="list-unstyled text-start mb-4">
+                    <li class="mb-2"><i class="fas fa-check text-success"></i> Detección de anomalías</li>
+                    <li class="mb-2"><i class="fas fa-check text-success"></i> Análisis de patrones</li>
+                    <li class="mb-2"><i class="fas fa-check text-success"></i> Identificación de riesgos</li>
+                    <li class="mb-2"><i class="fas fa-check text-success"></i> Compatible CSV/Excel</li>
+                </ul>
+
+                {% if not session.user_id %}
+                <div class="alert alert-warning">
+                    <small><i class="fas fa-lock"></i> <strong>Requiere registro</strong></small>
+                </div>
+                <a href="/register" class="btn btn-success btn-lg w-100">
+                    <i class="fas fa-user-plus"></i> Registrarse Gratis
+                </a>
+                {% else %}
+                <a href="/upload" class="btn btn-success btn-lg w-100">
+                    <i class="fas fa-cloud-upload-alt"></i> Subir Archivo
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Banner informativo -->
+<div class="alert alert-info mt-5 text-center">
+    <h5><i class="fas fa-info-circle"></i> ¿Por qué es importante?</h5>
+    <p class="mb-0">El 60% de las PyMEs que sufren un ciberataque cierran en los siguientes 6 meses. Un diagnóstico preventivo puede salvar tu negocio.</p>
+</div>
+
+<!-- Call to action para planes -->
+{% if session.user_id and session.plan == 'gratuito' %}
+<div class="alert alert-success mt-4">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h5><i class="fas fa-star"></i> Mejora tu Plan</h5>
+            <p class="mb-0">Obtén diagnósticos ilimitados y reportes PDF descargables</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="/planes" class="btn btn-success">Ver Planes</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

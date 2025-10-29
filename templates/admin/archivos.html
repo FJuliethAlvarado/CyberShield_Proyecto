@@ -1,0 +1,588 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">
+                <i class="fas fa-file-upload text-success"></i> Archivos Analizados
+            </h1>
+            <p class="text-muted mb-0">Gestión de análisis de archivos CSV/Excel</p>
+        </div>
+        <a href="/admin/dashboard" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Volver al Dashboard
+        </a>
+    </div>
+
+    <!-- Estadísticas Rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-file-alt text-primary mb-2" style="font-size: 2rem;"></i>
+                    <h3 class="mb-0">{{ archivos|length }}</h3>
+                    <small class="text-muted">Total Archivos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-circle text-danger mb-2" style="font-size: 2rem;"></i>
+                    <h3 class="mb-0">{{ archivos|selectattr('nivel_riesgo', 'equalto', 'Alto')|list|length }}</h3>
+                    <small class="text-muted">Riesgos Altos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-triangle text-warning mb-2" style="font-size: 2rem;"></i>
+                    <h3 class="mb-0">{{ archivos|selectattr('nivel_riesgo', 'equalto', 'Medio')|list|length }}</h3>
+                    <small class="text-muted">Riesgos Medios</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle text-success mb-2" style="font-size: 2rem;"></i>
+                    <h3 class="mb-0">{{ archivos|selectattr('nivel_riesgo', 'equalto', 'Bajo')|list|length }}</h3>
+                    <small class="text-muted">Riesgos Bajos</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">
+                <i class="fas fa-filter"></i> Filtros de Búsqueda
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-exclamation-triangle"></i> Nivel de Riesgo
+                    </label>
+                    <select class="form-select" id="filtroRiesgo" onchange="aplicarFiltros()">
+                        <option value="todos">Todos los niveles</option>
+                        <option value="Alto">🔴 Alto</option>
+                        <option value="Medio">🟡 Medio</option>
+                        <option value="Bajo">🟢 Bajo</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-crown"></i> Plan de Usuario
+                    </label>
+                    <select class="form-select" id="filtroPlan" onchange="aplicarFiltros()">
+                        <option value="todos">Todos los planes</option>
+                        <option value="gratuito">Gratuito</option>
+                        <option value="premium">Premium</option>
+                        <option value="empresarial">Empresarial</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-search"></i> Buscar Archivo
+                    </label>
+                    <input type="text" class="form-control" id="buscarArchivo" 
+                           placeholder="Nombre del archivo..." 
+                           oninput="aplicarFiltros()">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-redo"></i> Limpiar
+                    </label>
+                    <button class="btn btn-secondary w-100" onclick="limpiarFiltros()">
+                        <i class="fas fa-times"></i> Limpiar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Archivos -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">
+                <i class="fas fa-list"></i> Listado de Archivos Analizados
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="tablaArchivos">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center" style="width: 50px;">ID</th>
+                            <th style="width: 180px;">Usuario / Empresa</th>
+                            <th style="width: 200px;">Archivo</th>
+                            <th class="text-center" style="width: 90px;">Registros</th>
+                            <th class="text-center" style="width: 110px;">Puntuación</th>
+                            <th class="text-center" style="width: 110px;">Riesgo</th>
+                            <th class="text-center" style="width: 90px;">Plan</th>
+                            <th class="text-center" style="width: 90px;">Fecha</th>
+                            <th class="text-center" style="width: 140px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for archivo in archivos %}
+                        <tr class="fila-archivo" 
+                            data-riesgo="{{ archivo.nivel_riesgo }}"
+                            data-plan="{{ archivo.usuario_plan }}"
+                            data-archivo="{{ archivo.archivo_nombre|lower }}">
+                            
+                            <!-- ID -->
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark">#{{ archivo.id }}</span>
+                            </td>
+
+                            <!-- Usuario / Empresa -->
+                            <td>
+                                <div style="max-width: 170px;">
+                                    <small class="d-block text-truncate" title="{{ archivo.username }}">
+                                        <strong>{{ archivo.username }}</strong>
+                                    </small>
+                                    <small class="text-muted text-truncate d-block" title="{{ archivo.empresa }}">
+                                        <i class="fas fa-building"></i> {{ archivo.empresa }}
+                                    </small>
+                                </div>
+                            </td>
+
+                            <!-- Archivo -->
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-{{ 'file-csv' if archivo.archivo_nombre.lower().endswith('.csv') else 'file-excel' }} text-success me-2" style="font-size: 1.2rem;"></i>
+                                    <div style="max-width: 180px;">
+                                        <small class="d-block text-truncate" title="{{ archivo.archivo_nombre }}">
+                                            <strong>{{ archivo.archivo_nombre }}</strong>
+                                        </small>
+                                        <small class="text-muted">
+                                            {{ 'CSV' if archivo.archivo_nombre.lower().endswith('.csv') else 'Excel' }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Registros -->
+                            <td class="text-center">
+                                <span class="badge bg-primary rounded-pill">
+                                    {{ archivo.total_registros }}
+                                </span>
+                            </td>
+
+                            <!-- Puntuación -->
+                            <td class="text-center">
+                                <div>
+                                    <strong class="d-block text-{{ 'danger' if archivo.puntuacion_riesgo >= 50 else 'warning' if archivo.puntuacion_riesgo >= 30 else 'success' }}">
+                                        {{ archivo.puntuacion_riesgo }}
+                                    </strong>
+                                    <div class="progress mt-1" style="height: 4px;">
+                                        <div class="progress-bar bg-{{ 'danger' if archivo.puntuacion_riesgo >= 50 else 'warning' if archivo.puntuacion_riesgo >= 30 else 'success' }}" 
+                                             style="width: {{ archivo.puntuacion_riesgo }}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Nivel Riesgo -->
+                            <td class="text-center">
+                                <span class="badge bg-{{ 'danger' if archivo.nivel_riesgo == 'Alto' else 'warning' if archivo.nivel_riesgo == 'Medio' else 'success' }}">
+                                    {{ archivo.nivel_riesgo }}
+                                </span>
+                            </td>
+
+                            <!-- Plan -->
+                            <td class="text-center">
+                                <span class="badge bg-{{ 'success' if archivo.usuario_plan == 'premium' else 'warning' if archivo.usuario_plan == 'empresarial' else 'secondary' }}">
+                                    {{ archivo.usuario_plan[:3]|upper }}
+                                </span>
+                            </td>
+
+                            <!-- Fecha -->
+                            <td class="text-center">
+                                <small class="d-block">
+                                    {{ archivo.fecha_analisis.strftime('%d/%m/%y') if archivo.fecha_analisis else 'N/A' }}
+                                </small>
+                                <small class="text-muted">
+                                    {{ archivo.fecha_analisis.strftime('%H:%M') if archivo.fecha_analisis else '' }}
+                                </small>
+                            </td>
+
+                            <!-- Acciones -->
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <button type="button" 
+                                            class="btn btn-sm btn-info text-white" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#detallesModal{{ archivo.id }}"
+                                            title="Ver Detalles Completos">
+                                        <i class="fas fa-eye"></i>
+                                        <span class="d-none d-lg-inline ms-1">Ver</span>
+                                    </button>
+                                    <a href="/admin/eliminar_archivo/{{ archivo.id }}" 
+                                       class="btn btn-sm btn-danger"
+                                       title="Eliminar Archivo"
+                                       onclick="return confirm('⚠️ ¿Estás seguro de eliminar este archivo?\n\nEsta acción no se puede deshacer.')">
+                                        <i class="fas fa-trash"></i>
+                                        <span class="d-none d-lg-inline ms-1">Eliminar</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumen de Actividad -->
+    <div class="card shadow-sm border-0 mt-4">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">
+                <i class="fas fa-chart-bar"></i> Resumen de Actividad
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <h6 class="text-primary mb-3">Archivos por Plan</h6>
+                    <div class="d-flex justify-content-around">
+                        <div>
+                            <h4 class="text-secondary">{{ archivos|selectattr('usuario_plan', 'equalto', 'gratuito')|list|length }}</h4>
+                            <small>Gratuito</small>
+                        </div>
+                        <div>
+                            <h4 class="text-success">{{ archivos|selectattr('usuario_plan', 'equalto', 'premium')|list|length }}</h4>
+                            <small>Premium</small>
+                        </div>
+                        <div>
+                            <h4 class="text-warning">{{ archivos|selectattr('usuario_plan', 'equalto', 'empresarial')|list|length }}</h4>
+                            <small>Empresarial</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-primary mb-3">Distribución de Riesgos</h6>
+                    <div class="d-flex justify-content-around">
+                        <div>
+                            <h4 class="text-danger">{{ archivos|selectattr('nivel_riesgo', 'equalto', 'Alto')|list|length }}</h4>
+                            <small>Alto</small>
+                        </div>
+                        <div>
+                            <h4 class="text-warning">{{ archivos|selectattr('nivel_riesgo', 'equalto', 'Medio')|list|length }}</h4>
+                            <small>Medio</small>
+                        </div>
+                        <div>
+                            <h4 class="text-success">{{ archivos|selectattr('nivel_riesgo', 'equalto', 'Bajo')|list|length }}</h4>
+                            <small>Bajo</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-primary mb-3">Estadísticas Generales</h6>
+                    <p class="mb-2">
+                        <strong>Total Registros:</strong> 
+                        <span class="badge bg-primary">{{ archivos|sum(attribute='total_registros') }}</span>
+                    </p>
+                    <p class="mb-2">
+                        <strong>Promedio Riesgo:</strong> 
+                        <span class="badge bg-info">{{ "%.1f"|format((archivos|sum(attribute='puntuacion_riesgo') / archivos|length) if archivos|length > 0 else 0) }}</span>
+                    </p>
+                    <p class="mb-0">
+                        <strong>Usuarios Activos:</strong> 
+                        <span class="badge bg-success">{{ (archivos|map(attribute='username')|unique|list)|length }}</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODALES (Fuera de la tabla) -->
+{% for archivo in archivos %}
+<div class="modal fade" id="detallesModal{{ archivo.id }}" tabindex="-1" aria-labelledby="detallesModalLabel{{ archivo.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="detallesModalLabel{{ archivo.id }}">
+                    <i class="fas fa-file-excel"></i> Detalles del Análisis #{{ archivo.id }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="text-success mb-3">
+                                    <i class="fas fa-user"></i> Información del Usuario
+                                </h6>
+                                <p class="mb-2">
+                                    <strong>Usuario:</strong> {{ archivo.username }}
+                                </p>
+                                <p class="mb-2">
+                                    <strong>Empresa:</strong> {{ archivo.empresa }}
+                                </p>
+                                <p class="mb-0">
+                                    <strong>Plan:</strong> 
+                                    <span class="badge bg-{{ 'success' if archivo.usuario_plan == 'premium' else 'warning' if archivo.usuario_plan == 'empresarial' else 'secondary' }}">
+                                        {{ archivo.usuario_plan|upper }}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="text-success mb-3">
+                                    <i class="fas fa-file-alt"></i> Información del Archivo
+                                </h6>
+                                <p class="mb-2">
+                                    <strong>Archivo:</strong> 
+                                    <i class="fas fa-{{ 'file-csv' if archivo.archivo_nombre.lower().endswith('.csv') else 'file-excel' }} text-success"></i>
+                                    {{ archivo.archivo_nombre }}
+                                </p>
+                                <p class="mb-2">
+                                    <strong>Registros:</strong> 
+                                    <span class="badge bg-primary">{{ archivo.total_registros }}</span>
+                                </p>
+                                <p class="mb-0">
+                                    <strong>Fecha:</strong> 
+                                    {{ archivo.fecha_analisis.strftime('%d/%m/%Y %H:%M') if archivo.fecha_analisis else 'N/A' }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6 class="text-success mb-3">
+                                    <i class="fas fa-chart-line"></i> Evaluación de Riesgo
+                                </h6>
+                                <h2 class="text-{{ 'danger' if archivo.nivel_riesgo == 'Alto' else 'warning' if archivo.nivel_riesgo == 'Medio' else 'success' }}">
+                                    {{ archivo.puntuacion_riesgo }}/100
+                                </h2>
+                                <span class="badge bg-{{ 'danger' if archivo.nivel_riesgo == 'Alto' else 'warning' if archivo.nivel_riesgo == 'Medio' else 'success' }} px-4 py-2 mb-3">
+                                    {{ archivo.nivel_riesgo|upper }}
+                                </span>
+                                <div class="progress" style="height: 15px;">
+                                    <div class="progress-bar bg-{{ 'danger' if archivo.nivel_riesgo == 'Alto' else 'warning' if archivo.nivel_riesgo == 'Medio' else 'success' }}" 
+                                         style="width: {{ archivo.puntuacion_riesgo }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="text-success mb-3">
+                                    <i class="fas fa-info-circle"></i> Interpretación
+                                </h6>
+                                <div class="alert alert-{{ 'danger' if archivo.nivel_riesgo == 'Alto' else 'warning' if archivo.nivel_riesgo == 'Medio' else 'success' }} mb-0">
+                                    <strong>
+                                        <i class="fas fa-{{ 'exclamation-circle' if archivo.nivel_riesgo == 'Alto' else 'exclamation-triangle' if archivo.nivel_riesgo == 'Medio' else 'check-circle' }}"></i>
+                                        Nivel: {{ archivo.nivel_riesgo }}
+                                    </strong>
+                                    <p class="mb-0 mt-2">
+                                        {% if archivo.nivel_riesgo == 'Alto' %}
+                                        Se detectaron múltiples anomalías significativas que requieren revisión inmediata de los datos.
+                                        {% elif archivo.nivel_riesgo == 'Medio' %}
+                                        Se detectaron algunas anomalías que requieren monitoreo y verificación.
+                                        {% else %}
+                                        El archivo presenta un riesgo bajo, sin anomalías significativas detectadas.
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Métricas -->
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="text-success mb-3">
+                            <i class="fas fa-chart-bar"></i> Métricas del Análisis
+                        </h6>
+                        <div class="row text-center g-3">
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <i class="fas fa-database text-primary mb-2" style="font-size: 1.5rem;"></i>
+                                        <h4 class="text-primary mb-0">{{ archivo.total_registros }}</h4>
+                                        <small class="text-muted">Registros Analizados</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <i class="fas fa-chart-line text-info mb-2" style="font-size: 1.5rem;"></i>
+                                        <h4 class="text-info mb-0">{{ archivo.puntuacion_riesgo }}</h4>
+                                        <small class="text-muted">Puntuación Riesgo</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <i class="fas fa-{{ 'exclamation-circle' if archivo.nivel_riesgo == 'Alto' else 'exclamation-triangle' if archivo.nivel_riesgo == 'Medio' else 'check-circle' }} text-{{ 'danger' if archivo.nivel_riesgo == 'Alto' else 'warning' if archivo.nivel_riesgo == 'Medio' else 'success' }} mb-2" style="font-size: 1.5rem;"></i>
+                                        <h4 class="text-{{ 'danger' if archivo.nivel_riesgo == 'Alto' else 'warning' if archivo.nivel_riesgo == 'Medio' else 'success' }} mb-0">
+                                            {{ archivo.nivel_riesgo }}
+                                        </h4>
+                                        <small class="text-muted">Nivel de Riesgo</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<style>
+/* Tabla mejorada */
+.text-secondary {
+    --bs-text-opacity: 1;
+    color: #000 !important;
+}
+.table thead th {
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.table tbody tr {
+    transition: all 0.2s;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Progress bar */
+.progress {
+    background-color: #e9ecef;
+}
+
+/* Badges */
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+/* Gap entre botones */
+.gap-2 {
+    gap: 0.5rem !important;
+}
+
+/* Modal mejorado */
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal {
+    z-index: 1055;
+}
+
+.modal-backdrop {
+    z-index: 1050;
+}
+</style>
+
+<script>
+function aplicarFiltros() {
+    const filtroRiesgo = document.getElementById('filtroRiesgo').value;
+    const filtroPlan = document.getElementById('filtroPlan').value;
+    const buscarArchivo = document.getElementById('buscarArchivo').value.toLowerCase();
+    
+    const filas = document.querySelectorAll('.fila-archivo');
+    let visibles = 0;
+    
+    filas.forEach(fila => {
+        const riesgo = fila.getAttribute('data-riesgo');
+        const plan = fila.getAttribute('data-plan');
+        const archivo = fila.getAttribute('data-archivo');
+        
+        let mostrar = true;
+        
+        if (filtroRiesgo !== 'todos' && riesgo !== filtroRiesgo) {
+            mostrar = false;
+        }
+        
+        if (filtroPlan !== 'todos' && plan !== filtroPlan) {
+            mostrar = false;
+        }
+        
+        if (buscarArchivo && !archivo.includes(buscarArchivo)) {
+            mostrar = false;
+        }
+        
+        fila.style.display = mostrar ? '' : 'none';
+        if (mostrar) visibles++;
+    });
+    
+    // Mostrar mensaje si no hay resultados
+    const tbody = document.querySelector('#tablaArchivos tbody');
+    let mensajeNoResultados = document.getElementById('noResultados');
+    
+    if (visibles === 0) {
+        if (!mensajeNoResultados) {
+            mensajeNoResultados = document.createElement('tr');
+            mensajeNoResultados.id = 'noResultados';
+            mensajeNoResultados.innerHTML = '<td colspan="9" class="text-center py-4"><i class="fas fa-search"></i> No se encontraron resultados con los filtros aplicados</td>';
+            tbody.appendChild(mensajeNoResultados);
+        }
+    } else {
+        if (mensajeNoResultados) {
+            mensajeNoResultados.remove();
+        }
+    }
+}
+
+function limpiarFiltros() {
+    document.getElementById('filtroRiesgo').value = 'todos';
+    document.getElementById('filtroPlan').value = 'todos';
+    document.getElementById('buscarArchivo').value = '';
+    aplicarFiltros();
+}
+
+// Prevenir múltiples modales
+document.addEventListener('show.bs.modal', function (event) {
+    const modals = document.querySelectorAll('.modal.show');
+    modals.forEach(modal => {
+        const bsModal = bootstrap.Modal.getInstance(modal);
+        if (bsModal) bsModal.hide();
+    });
+});
+
+// Limpiar backdrops
+document.addEventListener('hidden.bs.modal', function (event) {
+    const backdrops = document.querySelectorAll('.modal-backdrop');
+    backdrops.forEach(backdrop => backdrop.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+});
+</script>
+{% endblock %}

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CyberShield PyME{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='/cyberstyle.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='/styles-auth.css') }}">
+    {% block extra_css %}{% endblock %}
+    <style>
+        body { padding-top: 70px; }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .card { box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075); }
+        .badge-role { font-size: 0.7rem; }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-shield-alt"></i> CyberShield PyME
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if session.rol != 'admin' %}
+                    <!-- SOLO MOSTRAR ESTAS OPCIONES PARA USUARIOS NO ADMIN -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Inicio</a>
+                    </li>
+                    
+                    <!-- Dropdown de Diagnósticos -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="diagnosticosDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-chart-line"></i> Diagnósticos
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/diagnostico">
+                                <i class="fas fa-clipboard-list"></i> Formulario
+                            </a></li>
+                            <li><a class="dropdown-item" href="/upload">
+                                <i class="fas fa-file-upload"></i> Analizar Archivo
+                            </a></li>
+                        </ul>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="/planes">Planes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/quienes-somos">
+                            <i class="fas fa-info-circle me-1"></i>¿Quiénes Somos?
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% if session.user_id %}
+                    <!-- Usuario logueado -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle"></i> {{ session.username }}
+                            {% if session.rol == 'admin' %}
+                            <span class="badge bg-danger badge-role">ADMIN</span>
+                            {% else %}
+                            <span class="badge bg-success badge-role">{{ session.plan|upper }}</span>
+                            {% endif %}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <!-- ENLACE DIRECTO AL PANEL ADMIN PARA ADMINISTRADORES -->
+                            {% if session.rol == 'admin' %}
+                            <li><a class="dropdown-item" href="/admin/dashboard">
+                                <i class="fas fa-tachometer-alt"></i> Panel Admin
+                            </a></li>
+                            <li><a class="dropdown-item" href="/admin/usuarios">
+                                <i class="fas fa-users"></i> Gestión de Usuarios
+                            </a></li>
+                            <li><a class="dropdown-item" href="/admin/diagnosticos">
+                                <i class="fas fa-clipboard-list"></i> Todos los Diagnósticos
+                            </a></li>
+                            <li><a class="dropdown-item" href="/admin/archivos">
+                                <i class="fas fa-file-upload"></i> Archivos Analizados
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            {% endif %}
+                            
+                            <li><a class="dropdown-item" href="/perfil">
+                                <i class="fas fa-user"></i> Mi Perfil
+                            </a></li>
+                            <li><a class="dropdown-item" href="/perfil/editar"><i class="fas fa-edit"></i> Editar Perfil</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form action="/logout" method="post" class="d-inline">
+                                    <button type="submit" class="dropdown-item">
+                                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <!-- Usuario NO logueado - Botones diferenciados -->
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login">
+                            <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-outline-light btn-sm ms-2 nav-btn-register" href="/register">
+                            <i class="fas fa-user-plus"></i> Registrarse
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MENSAJES FLASH -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- CONTENIDO -->
+    <main class="container my-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-light py-4 mt-5">
+        <div class="container text-center text-muted">
+            <small>&copy; 2025 CyberShield PyME - Todos los derechos reservados</small>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
