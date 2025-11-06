@@ -3,18 +3,23 @@
 {% block content %}
 <div class="card shadow">
     <div class="card-header bg-{{ resultado.color_riesgo }} text-white">
-        <h4 class="mb-0"><i class="fas fa-file-medical-alt"></i> Resultado del Diagnóstico</h4>
+        <h4 class="mb-0">
+            <i class="fas fa-file-medical-alt"></i> Resultado del Diagnóstico
+            <span class="badge bg-light text-dark float-end">
+                <i class="fas fa-robot"></i> Análisis con IA
+            </span>
+        </h4>
     </div>
     <div class="card-body">
         <!-- Información del diagnóstico -->
         <div class="row mb-4">
             <div class="col-md-6">
-                <h5>Información de la Empresa</h5>
+                <h5><i class="fas fa-building me-2"></i>Información de la Empresa</h5>
                 <p><strong>Empresa:</strong> {{ resultado.empresa }}</p>
                 <p><strong>Fecha:</strong> {{ now.strftime('%d/%m/%Y %H:%M') }}</p>
             </div>
             <div class="col-md-6">
-                <h5>Evaluación de Riesgo</h5>
+                <h5><i class="fas fa-exclamation-triangle me-2"></i>Evaluación de Riesgo</h5>
                 <p><strong>Tipo:</strong> {{ resultado.tipo_riesgo }}</p>
                 <p><strong>Impacto:</strong> 
                     <span class="badge bg-{{ 'danger' if resultado.impacto == 'Alto' else 'warning' if resultado.impacto == 'Medio' else 'success' }}">
@@ -32,42 +37,134 @@
         <!-- Puntuación y Nivel -->
         <div class="row mb-4">
             <div class="col-md-6">
-                <div class="card">
+                <div class="card border-{{ resultado.color_riesgo }}">
                     <div class="card-body text-center">
-                        <h6>Puntuación de Riesgo</h6>
-                        <h2 class="text-{{ resultado.color_riesgo }}">{{ resultado.puntuacion_final }}/100</h2>
-                        <div class="progress mt-2">
+                        <h6><i class="fas fa-chart-line me-2"></i>Puntuación de Riesgo</h6>
+                        <h2 class="text-{{ resultado.color_riesgo }}">{{ "%.1f"|format(resultado.puntuacion_final) }}/100</h2>
+                        <div class="progress mt-2" style="height: 20px;">
                             <div class="progress-bar bg-{{ resultado.color_riesgo }}" 
-                                 style="width: {{ resultado.puntuacion_final }}%"></div>
+                                 style="width: {{ resultado.puntuacion_final }}%">
+                                {{ "%.0f"|format(resultado.puntuacion_final) }}%
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="card">
+                <div class="card border-{{ resultado.color_riesgo }}">
                     <div class="card-body text-center">
-                        <h6>Nivel de Riesgo</h6>
-                        <h2 class="text-{{ resultado.color_riesgo }}">
-                            <span class="badge bg-{{ resultado.color_riesgo }} p-2">
-                                {{ resultado.nivel_riesgo }}
+                        <h6><i class="fas fa-shield-alt me-2"></i>Nivel de Riesgo</h6>
+                        <h2>
+                            <span class="badge bg-{{ resultado.color_riesgo }} p-3 fs-4">
+                                {{ resultado.nivel_riesgo|upper }}
                             </span>
                         </h2>
+                        <small class="text-muted">Clasificación final del análisis</small>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- ========== PREDICCIÓN DE MACHINE LEARNING ========== -->
+        {% if resultado.ml_prediction %}
+        <div class="card bg-light mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-brain me-2"></i>Análisis con Inteligencia Artificial
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <i class="fas fa-robot fa-3x text-primary mb-3"></i>
+                                <h6>Predicción del Modelo ML</h6>
+                                <h4 class="text-primary">{{ resultado.ml_prediction }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <h6 class="mb-3"><i class="fas fa-chart-bar me-2"></i>Nivel de Confianza del Modelo</h6>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span><strong>Riesgo Crítico</strong></span>
+                                <span class="text-muted">{{ "%.1f"|format(resultado.ml_confidence.Crítico) }}%</span>
+                            </div>
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar bg-danger" 
+                                     style="width: {{ resultado.ml_confidence.Crítico }}%">
+                                    {{ "%.0f"|format(resultado.ml_confidence.Crítico) }}%
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span><strong>Riesgo Alto</strong></span>
+                                <span class="text-muted">{{ "%.1f"|format(resultado.ml_confidence.Alto) }}%</span>
+                            </div>
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar bg-warning" 
+                                     style="width: {{ resultado.ml_confidence.Alto }}%">
+                                    {{ "%.0f"|format(resultado.ml_confidence.Alto) }}%
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span><strong>Riesgo Medio</strong></span>
+                                <span class="text-muted">{{ "%.1f"|format(resultado.ml_confidence.Medio) }}%</span>
+                            </div>
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar bg-info" 
+                                     style="width: {{ resultado.ml_confidence.Medio }}%">
+                                    {{ "%.0f"|format(resultado.ml_confidence.Medio) }}%
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-0">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span><strong>Riesgo Bajo</strong></span>
+                                <span class="text-muted">{{ "%.1f"|format(resultado.ml_confidence.Bajo) }}%</span>
+                            </div>
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar bg-success" 
+                                     style="width: {{ resultado.ml_confidence.Bajo }}%">
+                                    {{ "%.0f"|format(resultado.ml_confidence.Bajo) }}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info mt-3 mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>¿Cómo funciona?</strong> Nuestro modelo de Machine Learning analiza patrones históricos de miles de diagnósticos 
+                    para predecir el nivel de riesgo con mayor precisión. La puntuación final combina análisis tradicional (50%) 
+                    y predicción ML (50%) para darte el resultado más confiable.
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Recomendaciones -->
         <div class="mb-4">
-            <h5><i class="fas fa-lightbulb"></i> Recomendaciones</h5>
+            <h5><i class="fas fa-lightbulb me-2"></i>Recomendaciones Prioritarias</h5>
             <div class="list-group">
                 {% for rec in resultado.recomendaciones %}
-                <div class="list-group-item">
+                <div class="list-group-item list-group-item-action">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="mb-1">{{ rec.titulo }}</h6>
+                            <h6 class="mb-1">
+                                <i class="fas fa-{{ 'exclamation-circle' if rec.prioridad == 'URGENTE' else 'info-circle' if rec.prioridad == 'Alta' else 'check-circle' }}"></i>
+                                {{ rec.titulo }}
+                            </h6>
                         </div>
-                        <span class="badge bg-{{ 'danger' if rec.prioridad == 'URGENTE' else 'warning' if rec.prioridad == 'Alta' else 'info' }}">
+                        <span class="badge bg-{{ 'danger' if rec.prioridad == 'URGENTE' else 'warning' if rec.prioridad == 'Alta' else 'info' }} px-3 py-2">
                             {{ rec.prioridad }}
                         </span>
                     </div>
@@ -79,37 +176,72 @@
         <!-- Observaciones -->
         {% if resultado.observaciones %}
         <div class="mb-4">
-            <h5><i class="fas fa-comment"></i> Observaciones</h5>
-            <div class="alert alert-info">
-                {{ resultado.observaciones }}
+            <h5><i class="fas fa-comment me-2"></i>Observaciones del Usuario</h5>
+            <div class="alert alert-secondary">
+                <p class="mb-0">{{ resultado.observaciones }}</p>
             </div>
         </div>
         {% endif %}
+
+        <!-- Interpretación del Resultado -->
+        <div class="alert alert-{{ resultado.color_riesgo }} mb-4">
+            <h5 class="alert-heading">
+                <i class="fas fa-{{ 'times-circle' if resultado.nivel_riesgo == 'Crítico' else 'exclamation-triangle' if resultado.nivel_riesgo == 'Alto' else 'info-circle' if resultado.nivel_riesgo == 'Medio' else 'check-circle' }}"></i>
+                Interpretación del Resultado
+            </h5>
+            <hr>
+            <p class="mb-0">
+                {% if resultado.nivel_riesgo == 'Crítico' %}
+                <strong>¡Acción Inmediata Requerida!</strong> Su empresa presenta un nivel de riesgo crítico que requiere atención urgente. 
+                Es fundamental implementar medidas de seguridad de manera inmediata para evitar incidentes graves.
+                {% elif resultado.nivel_riesgo == 'Alto' %}
+                <strong>Atención Prioritaria Necesaria:</strong> Se han identificado vulnerabilidades significativas que deben ser atendidas 
+                en el corto plazo. Recomendamos iniciar un plan de acción dentro de las próximas 2-4 semanas.
+                {% elif resultado.nivel_riesgo == 'Medio' %}
+                <strong>Monitoreo y Mejora Continua:</strong> Su empresa presenta un nivel de riesgo moderado. Aunque no es urgente, 
+                es recomendable implementar las mejoras sugeridas para fortalecer su postura de seguridad.
+                {% else %}
+                <strong>Buen Nivel de Seguridad:</strong> Su empresa mantiene un nivel de riesgo bajo. Continue con las buenas prácticas 
+                actuales y realice revisiones periódicas para mantener este nivel.
+                {% endif %}
+            </p>
+        </div>
 
         <!-- Modo Invitado -->
         {% if resultado.modo == 'invitado' %}
         <div class="alert alert-warning">
             <i class="fas fa-user-clock"></i> 
             <strong>Modo Invitado:</strong> Te quedan {{ resultado.restantes }} diagnóstico(s) gratis.
-            <a href="/register" class="alert-link">Regístrate para acceso ilimitado</a>.
+            <a href="/register" class="alert-link fw-bold">Regístrate para acceso ilimitado y reportes PDF</a>.
         </div>
         {% endif %}
 
         <!-- Botones de acción -->
         <div class="text-center mt-4">
-            <a href="/diagnostico" class="btn btn-primary">
+            <a href="/diagnostico" class="btn btn-primary btn-lg me-2">
                 <i class="fas fa-plus"></i> Nuevo Diagnóstico
             </a>
-            <a href="/" class="btn btn-outline-secondary">
+            <button class="btn btn-outline-primary btn-lg me-2" onclick="window.print()">
+                <i class="fas fa-print"></i> Imprimir Reporte
+            </button>
+            <a href="/" class="btn btn-outline-secondary btn-lg">
                 <i class="fas fa-home"></i> Volver al Inicio
             </a>
             
             {% if session.user_id %}
-            <a href="/perfil" class="btn btn-outline-info">
+            <a href="/perfil" class="btn btn-outline-info btn-lg">
                 <i class="fas fa-user"></i> Mi Perfil
             </a>
             {% endif %}
         </div>
     </div>
 </div>
+
+<style>
+@media print {
+    .btn, .card-header {
+        display: none !important;
+    }
+}
+</style>
 {% endblock %}

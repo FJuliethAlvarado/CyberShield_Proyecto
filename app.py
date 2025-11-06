@@ -6,6 +6,10 @@ from contextlib import contextmanager
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
+import pickle
+import json
 import os
 import math
 import logging
@@ -69,6 +73,58 @@ def get_db():
     finally:
         if conn and conn.is_connected():
             conn.close()
+
+# ==================== MODELO DE MACHINE LEARNING ====================
+class RiskPredictor:
+    def __init__(self):
+        self.model = RandomForestClassifier(n_estimators=100, random_state=42)
+        self.le_tipo = LabelEncoder()
+        self.le_impacto = LabelEncoder()
+        self.le_probabilidad = LabelEncoder()
+        self.is_trained = False
+        
+    def train_model(self):
+        """Entrena el modelo con datos históricos"""
+        # Datos de entrenamiento simulados
+        X_train = [
+            [0, 2, 2],  # Tecnológico, Alto, Alta -> Crítico
+            [0, 2, 1],  # Tecnológico, Alto, Media -> Alto
+            [1, 1, 2],  # Financiero, Medio, Alta -> Alto
+            [2, 0, 0],  # Operativo, Bajo, Baja -> Bajo
+            [3, 2, 2],  # Reputacional, Alto, Alta -> Crítico
+            [0, 1, 1],  # Tecnológico, Medio, Media -> Medio
+            [1, 2, 2],  # Financiero, Alto, Alta -> Crítico
+            [2, 1, 0],  # Operativo, Medio, Baja -> Medio
+            [3, 0, 1],  # Reputacional, Bajo, Media -> Bajo
+            [0, 2, 0],  # Tecnológico, Alto, Baja -> Medio
+        ]
+        y_train = [3, 2, 2, 0, 3, 1, 3, 1, 0, 1]  # 0=Bajo, 1=Medio, 2=Alto, 3=Crítico
+        
+        self.model.fit(X_train, y_train)
+        self.is_trained = True
+        
+    def predict_risk(self, tipo_riesgo, impacto, probabilidad):
+        """Predice el nivel de riesgo usando ML"""
+        if not self.is_trained:
+            self.train_model()
+            
+        # Mapeo manual de valores
+        tipo_map = {'Tecnológico': 0, 'Financiero': 1, 'Operativo': 2, 'Reputacional': 3, 'Legal': 4}
+        impacto_map = {'Bajo': 0, 'Medio': 1, 'Alto': 2}
+        prob_map = {'Baja': 0, 'Media': 1, 'Alta': 2}
+        
+        tipo_encoded = tipo_map.get(tipo_riesgo, 0)
+        impacto_encoded = impacto_map.get(impacto, 0)
+        prob_encoded = prob_map.get(probabilidad, 0)
+        
+        prediction = self.model.predict([[tipo_encoded, impacto_encoded, prob_encoded]])[0]
+        proba = self.model.predict_proba([[tipo_encoded, impacto_encoded, prob_encoded]])[0]
+        
+        nivel_map = {0: 'Bajo', 1: 'Medio', 2: 'Alto', 3: 'Crítico'}
+        return nivel_map[prediction], proba
+
+# Instancia global del predictor
+risk_predictor = RiskPredictor()
 
 # ==================== CONFIGURACIÓN DE PLANES ====================
 PLANES = {
@@ -247,26 +303,40 @@ def incrementar_contador(user_id, tipo):
 
 # ==================== FUNCIONES DE ANÁLISIS ====================
 def analizar_riesgo(form_data):
-    """Analiza el riesgo basado en el formulario"""
+    """Analiza el riesgo basado en el formulario usando ML"""
     PUNTUACION = {
-        'tipo_riesgo': {'Tecnológico': 30, 'Financiero': 25, 'Operativo': 20, 'Reputacional': 25},
+        'tipo_riesgo': {'Tecnológico': 30, 'Financiero': 25, 'Operativo': 20, 'Reputacional': 25, 'Legal': 22},
         'impacto': {'Alto': 40, 'Medio': 25, 'Bajo': 10},
         'probabilidad': {'Alta': 30, 'Media': 20, 'Baja': 10}
     }
     
+    # Puntuación tradicional
     puntuacion = (
         PUNTUACION['tipo_riesgo'].get(form_data['tipo_riesgo'], 0) +
         PUNTUACION['impacto'].get(form_data['impacto'], 0) +
         PUNTUACION['probabilidad'].get(form_data['probabilidad'], 0)
     )
     
-    if puntuacion >= 75:
+    # Predicción ML
+    nivel_ml, probabilidades = risk_predictor.predict_risk(
+        form_data['tipo_riesgo'],
+        form_data['impacto'],
+        form_data['probabilidad']
+    )
+    
+    # Ajustar puntuación con ML (50% tradicional + 50% ML)
+    nivel_map = {'Bajo': 25, 'Medio': 50, 'Alto': 75, 'Crítico': 95}
+    puntuacion_ml = nivel_map[nivel_ml]
+    puntuacion_final = (puntuacion * 0.5) + (puntuacion_ml * 0.5)
+    
+    # Determinar nivel final
+    if puntuacion_final >= 75:
         nivel = 'Crítico'
         color = 'danger'
-    elif puntuacion >= 55:
+    elif puntuacion_final >= 55:
         nivel = 'Alto'
         color = 'warning'
-    elif puntuacion >= 35:
+    elif puntuacion_final >= 35:
         nivel = 'Medio'
         color = 'info'
     else:
@@ -280,11 +350,18 @@ def analizar_riesgo(form_data):
         'tipo_riesgo': form_data['tipo_riesgo'],
         'impacto': form_data['impacto'],
         'probabilidad': form_data['probabilidad'],
-        'puntuacion_final': puntuacion,
+        'puntuacion_final': round(puntuacion_final, 2),
         'nivel_riesgo': nivel,
         'color_riesgo': color,
         'recomendaciones': recomendaciones,
-        'observaciones': form_data.get('observaciones', '')
+        'observaciones': form_data.get('observaciones', ''),
+        'ml_prediction': nivel_ml,
+        'ml_confidence': {
+            'Bajo': round(probabilidades[0] * 100, 2),
+            'Medio': round(probabilidades[1] * 100, 2),
+            'Alto': round(probabilidades[2] * 100, 2),
+            'Crítico': round(probabilidades[3] * 100, 2)
+        }
     }
 
 def generar_recomendaciones(nivel, tipo_riesgo):
@@ -616,28 +693,33 @@ def upload():
                 analisis = analizar_archivo(df)
                 analisis['archivo_nombre'] = filename
                 
-                # **NUEVO: Agregar datos para la visualización de la tabla**
+                # Enriquecer con datos de visualización
                 analisis = enriquecer_analisis_con_vista_tabla(analisis, df)
                 
-                # Guardar en BD
+                # Guardar en BD - CORREGIDO: Asegurar que nivel_riesgo esté definido
                 with get_db() as conn:
                     cursor = conn.cursor()
                     cursor.execute("""
                         INSERT INTO archivos_analizados 
                         (usuario_id, archivo_nombre, total_registros, puntuacion_riesgo, nivel_riesgo)
                         VALUES (%s, %s, %s, %s, %s)
-                    """, (session['user_id'], filename, analisis['total_registros'],
-                        analisis['puntuacion_riesgo'], analisis.get('nivel_riesgo', 'Bajo')))
+                    """, (
+                        session['user_id'], 
+                        filename, 
+                        analisis['total_registros'],
+                        analisis['puntuacion_riesgo'], 
+                        analisis.get('nivel_riesgo', 'Bajo')  # Valor por defecto
+                    ))
                     conn.commit()
                 
                 incrementar_contador(session['user_id'], 'archivo')
                 
-                # **CAMBIADO: Renderizar upload.html con el análisis**
                 return render_template('upload.html', 
                                     mensaje=mensaje, 
                                     analisis=analisis)
                 
             except Exception as e:
+                logger.error(f"Error al analizar archivo: {str(e)}")
                 flash(f'Error al analizar archivo: {str(e)}', 'error')
                 return redirect(url_for('upload'))
         else:
@@ -646,12 +728,9 @@ def upload():
     
     return render_template('upload.html', mensaje=mensaje)
 
-# **NUEVA FUNCIÓN: Enriquecer el análisis con datos para la tabla**
+###########**NUEVA FUNCIÓN: Enriquecer el análisis con datos para la tabla**
 def enriquecer_analisis_con_vista_tabla(analisis, df):
-    """
-    Agrega datos necesarios para mostrar la tabla en el template
-    """
-    # Datos básicos de la tabla
+    """Agrega datos necesarios para mostrar la tabla con MAPA DE CALOR"""
     analisis['columnas'] = df.columns.tolist()
     analisis['total_registros'] = len(df)
     analisis['total_columnas'] = len(df.columns)
@@ -663,7 +742,86 @@ def enriquecer_analisis_con_vista_tabla(analisis, df):
     # Estadísticas por columna
     analisis['estadisticas_columnas'] = calcular_estadisticas_columnas(df)
     
+    # ========== NUEVO: MAPA DE CALOR DE ANOMALÍAS ==========
+    analisis['mapa_calor'] = generar_mapa_calor(df, analisis['anomalias'])
+    
+    # ========== NUEVO: DATOS PARA GRÁFICAS CORREGIDAS ==========
+    analisis['graficas'] = {
+        'anomalias_por_tipo': generar_datos_grafica_anomalias(analisis['anomalias']),
+        'nulos_por_columna': generar_datos_grafica_nulos(df),
+        'distribucion_valores': generar_datos_distribucion(df)
+    }
+    
     return analisis
+
+# ==================== NUEVAS FUNCIONES: MAPA DE CALOR ====================
+def generar_mapa_calor(df, anomalias):
+    """Genera un mapa de calor para visualizar anomalías por celda"""
+    mapa = []
+    
+    for idx, row in df.head(50).iterrows():
+        fila_calor = {}
+        for col in df.columns:
+            nivel_riesgo = 0  # 0=Sin riesgo, 1=Bajo, 2=Medio, 3=Alto
+            
+            # Verificar si hay valor nulo
+            if pd.isna(row[col]) or row[col] == '':
+                nivel_riesgo = 3
+            
+            # Verificar si es un outlier numérico
+            elif pd.api.types.is_numeric_dtype(df[col]):
+                Q1 = df[col].quantile(0.25)
+                Q3 = df[col].quantile(0.75)
+                IQR = Q3 - Q1
+                lower = Q1 - 1.5 * IQR
+                upper = Q3 + 1.5 * IQR
+                
+                if row[col] < lower or row[col] > upper:
+                    nivel_riesgo = 2
+            
+            fila_calor[col] = nivel_riesgo
+        
+        mapa.append(fila_calor)
+    
+    return mapa
+
+def generar_datos_grafica_anomalias(anomalias):
+    """Prepara datos para gráfica de anomalías"""
+    categorias = {}
+    for anomalia in anomalias:
+        categoria = anomalia.get('categoria', 'Otros')
+        categorias[categoria] = categorias.get(categoria, 0) + 1
+    
+    return {
+        'labels': list(categorias.keys()),
+        'data': list(categorias.values())
+    }
+
+def generar_datos_grafica_nulos(df):
+    """Prepara datos para gráfica de valores nulos"""
+    nulos = df.isnull().sum()
+    columnas_con_nulos = [(col, count) for col, count in nulos.items() if count > 0]
+    columnas_con_nulos.sort(key=lambda x: x[1], reverse=True)
+    
+    return {
+        'labels': [col for col, _ in columnas_con_nulos[:10]],  # Top 10
+        'data': [count for _, count in columnas_con_nulos[:10]]
+    }
+
+def generar_datos_distribucion(df):
+    """Genera datos de distribución para columnas numéricas"""
+    distribucion = {}
+    
+    for col in df.select_dtypes(include=[np.number]).columns[:5]:  # Top 5
+        if len(df[col].dropna()) > 0:
+            # Crear histograma
+            counts, bins = np.histogram(df[col].dropna(), bins=10)
+            distribucion[col] = {
+                'bins': [f"{bins[i]:.1f}" for i in range(len(bins)-1)],
+                'counts': counts.tolist()
+            }
+    
+    return distribucion
 
 def calcular_estadisticas_columnas(df):
     """
@@ -1327,14 +1485,42 @@ def admin_dashboard():
             LIMIT 10
         """)
         ultimos_diagnosticos = cursor.fetchall()
+        
+        # ========== CORREGIDO: Archivos recientes ==========
+        cursor.execute("""
+            SELECT a.*, u.username, u.empresa 
+            FROM archivos_analizados a
+            JOIN usuarios u ON a.usuario_id = u.id 
+            ORDER BY a.fecha_analisis DESC 
+            LIMIT 10
+        """)
+        ultimos_archivos = cursor.fetchall()
+        
+        # ========== NUEVO: Estadísticas de riesgo ==========
+        cursor.execute("""
+            SELECT nivel_riesgo, COUNT(*) as cantidad
+            FROM diagnosticos
+            GROUP BY nivel_riesgo
+        """)
+        riesgos_diagnosticos = cursor.fetchall()
+        
+        cursor.execute("""
+            SELECT nivel_riesgo, COUNT(*) as cantidad
+            FROM archivos_analizados
+            GROUP BY nivel_riesgo
+        """)
+        riesgos_archivos = cursor.fetchall()
     
     return render_template('admin/dashboard.html', 
-                         total_usuarios=total_usuarios,
-                         total_diagnosticos=total_diagnosticos,
-                         total_archivos=total_archivos,
-                         usuarios_plan=usuarios_plan,
-                         diagnosticos_mes=diagnosticos_mes,
-                         ultimos_diagnosticos=ultimos_diagnosticos)
+                        total_usuarios=total_usuarios,
+                        total_diagnosticos=total_diagnosticos,
+                        total_archivos=total_archivos,
+                        usuarios_plan=usuarios_plan,
+                        diagnosticos_mes=diagnosticos_mes,
+                        ultimos_diagnosticos=ultimos_diagnosticos,
+                        ultimos_archivos=ultimos_archivos,
+                        riesgos_diagnosticos=riesgos_diagnosticos,
+                        riesgos_archivos=riesgos_archivos)
 
 @app.route('/admin/usuarios')
 @admin_required

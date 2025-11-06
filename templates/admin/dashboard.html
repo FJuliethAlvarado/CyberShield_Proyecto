@@ -4,7 +4,10 @@
 <div class="container-fluid">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="fas fa-tachometer-alt"></i> Panel de Administración</h1>
+        <div>
+            <h1><i class="fas fa-tachometer-alt"></i> Panel de Administración</h1>
+            <p class="text-muted mb-0">Visión general del sistema CyberShield</p>
+        </div>
         <div class="btn-group">
             <a href="/admin/usuarios" class="btn btn-outline-primary">
                 <i class="fas fa-users"></i> Usuarios
@@ -18,56 +21,56 @@
         </div>
     </div>
 
-    <!-- Estadísticas -->
+    <!-- Estadísticas Principales -->
     <div class="row mb-4">
         <div class="col-md-3">
-            <div class="card bg-primary text-white">
+            <div class="card bg-primary text-white shadow">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4>{{ total_usuarios }}</h4>
+                            <h4 class="mb-0">{{ total_usuarios }}</h4>
                             <p class="mb-0">Total Usuarios</p>
                         </div>
-                        <i class="fas fa-users fa-2x"></i>
+                        <i class="fas fa-users fa-2x opacity-50"></i>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-success text-white">
+            <div class="card bg-success text-white shadow">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4>{{ total_diagnosticos }}</h4>
+                            <h4 class="mb-0">{{ total_diagnosticos }}</h4>
                             <p class="mb-0">Diagnósticos</p>
                         </div>
-                        <i class="fas fa-clipboard-list fa-2x"></i>
+                        <i class="fas fa-clipboard-list fa-2x opacity-50"></i>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-info text-white">
+            <div class="card bg-info text-white shadow">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4>{{ total_archivos }}</h4>
+                            <h4 class="mb-0">{{ total_archivos }}</h4>
                             <p class="mb-0">Archivos Analizados</p>
                         </div>
-                        <i class="fas fa-file-upload fa-2x"></i>
+                        <i class="fas fa-file-upload fa-2x opacity-50"></i>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-warning text-white">
+            <div class="card bg-warning text-white shadow">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4>{{ usuarios_plan|length }}</h4>
+                            <h4 class="mb-0">{{ usuarios_plan|length }}</h4>
                             <p class="mb-0">Planes Activos</p>
                         </div>
-                        <i class="fas fa-crown fa-2x"></i>
+                        <i class="fas fa-crown fa-2x opacity-50"></i>
                     </div>
                 </div>
             </div>
@@ -76,13 +79,14 @@
 
     <div class="row">
         <!-- Usuarios por Plan -->
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
                     <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Usuarios por Plan</h5>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
+                    <canvas id="plansChart"></canvas>
+                    <div class="table-responsive mt-3">
                         <table class="table table-sm">
                             <thead>
                                 <tr>
@@ -99,7 +103,7 @@
                                             {{ plan.plan|title }}
                                         </span>
                                     </td>
-                                    <td>{{ plan.cantidad }}</td>
+                                    <td><strong>{{ plan.cantidad }}</strong></td>
                                     <td>{{ "%.1f"|format((plan.cantidad / total_usuarios) * 100) }}%</td>
                                 </tr>
                                 {% endfor %}
@@ -110,16 +114,52 @@
             </div>
         </div>
 
-        <!-- Últimos Diagnósticos -->
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-history"></i> Últimos Diagnósticos</h5>
+        <!-- Distribución de Riesgos -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Distribución de Riesgos</h5>
                 </div>
                 <div class="card-body">
+                    <canvas id="risksChart"></canvas>
+                    <div class="row mt-3 text-center">
+                        <div class="col-6">
+                            <h6 class="text-muted">Diagnósticos</h6>
+                            {% for riesgo in riesgos_diagnosticos %}
+                            <div class="mb-2">
+                                <span class="badge bg-{{ 'danger' if riesgo.nivel_riesgo == 'Crítico' else 'warning' if riesgo.nivel_riesgo == 'Alto' else 'info' if riesgo.nivel_riesgo == 'Medio' else 'success' }}">
+                                    {{ riesgo.nivel_riesgo }}: {{ riesgo.cantidad }}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-6">
+                            <h6 class="text-muted">Archivos</h6>
+                            {% for riesgo in riesgos_archivos %}
+                            <div class="mb-2">
+                                <span class="badge bg-{{ 'danger' if riesgo.nivel_riesgo == 'Alto' else 'warning' if riesgo.nivel_riesgo == 'Medio' else 'success' }}">
+                                    {{ riesgo.nivel_riesgo }}: {{ riesgo.cantidad }}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Últimos Diagnósticos -->
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Últimos Diagnósticos</h5>
+                </div>
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
                                 <tr>
                                     <th>Usuario</th>
                                     <th>Empresa</th>
@@ -130,53 +170,200 @@
                             <tbody>
                                 {% for diag in ultimos_diagnosticos %}
                                 <tr>
-                                    <td>{{ diag.username }}</td>
+                                    <td><strong>{{ diag.username }}</strong></td>
                                     <td>{{ diag.empresa }}</td>
                                     <td>
                                         <span class="badge bg-{{ 'danger' if diag.nivel_riesgo == 'Crítico' else 'warning' if diag.nivel_riesgo == 'Alto' else 'info' if diag.nivel_riesgo == 'Medio' else 'success' }}">
                                             {{ diag.nivel_riesgo }}
                                         </span>
                                     </td>
-                                    <td>{{ diag.fecha_analisis.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <small>{{ diag.fecha_analisis.strftime('%d/%m/%Y') if diag.fecha_analisis else 'N/A' }}</small>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="/admin/diagnosticos" class="btn btn-sm btn-success">
+                        <i class="fas fa-eye"></i> Ver Todos
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Últimos Archivos Analizados -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-file-excel"></i> Últimos Archivos Analizados</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Archivo</th>
+                                    <th>Riesgo</th>
+                                    <th>Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if ultimos_archivos %}
+                                {% for archivo in ultimos_archivos %}
+                                <tr>
+                                    <td><strong>{{ archivo.username }}</strong></td>
+                                    <td>
+                                        <small title="{{ archivo.archivo_nombre }}">
+                                            {{ archivo.archivo_nombre[:20] }}{{ '...' if archivo.archivo_nombre|length > 20 else '' }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'danger' if archivo.nivel_riesgo == 'Alto' else 'warning' if archivo.nivel_riesgo == 'Medio' else 'success' }}">
+                                            {{ archivo.nivel_riesgo }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>{{ archivo.fecha_analisis.strftime('%d/%m/%Y') if archivo.fecha_analisis else 'N/A' }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-3">
+                                        <i class="fas fa-inbox"></i> No hay archivos analizados
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="/admin/archivos" class="btn btn-sm btn-info text-white">
+                        <i class="fas fa-eye"></i> Ver Todos
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Actividad Mensual -->
-    <div class="row mt-4">
+    <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Actividad Mensual</h5>
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Actividad Mensual (Últimos 6 meses)</h5>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Mes</th>
-                                    <th>Diagnósticos</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for mes in diagnosticos_mes %}
-                                <tr>
-                                    <td>{{ mes.mes }}</td>
-                                    <td>{{ mes.total }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                    <canvas id="activityChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de Planes
+    const plansCtx = document.getElementById('plansChart');
+    if (plansCtx) {
+        new Chart(plansCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [{% for plan in usuarios_plan %}'{{ plan.plan|title }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                datasets: [{
+                    data: [{% for plan in usuarios_plan %}{{ plan.cantidad }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    backgroundColor: ['#6c757d', '#28a745', '#007bff']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // Gráfico de Riesgos
+    const risksCtx = document.getElementById('risksChart');
+    if (risksCtx) {
+        new Chart(risksCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Diagnósticos', 'Archivos'],
+                datasets: [
+                    {
+                        label: 'Crítico/Alto',
+                        data: [
+                            {% set criticos = riesgos_diagnosticos|selectattr('nivel_riesgo', 'in', ['Crítico', 'Alto'])|sum(attribute='cantidad') %}{{ criticos }},
+                            {% set altos_arch = riesgos_archivos|selectattr('nivel_riesgo', 'equalto', 'Alto')|sum(attribute='cantidad') %}{{ altos_arch }}
+                        ],
+                        backgroundColor: '#dc3545'
+                    },
+                    {
+                        label: 'Medio',
+                        data: [
+                            {% set medios = riesgos_diagnosticos|selectattr('nivel_riesgo', 'equalto', 'Medio')|sum(attribute='cantidad') %}{{ medios }},
+                            {% set medios_arch = riesgos_archivos|selectattr('nivel_riesgo', 'equalto', 'Medio')|sum(attribute='cantidad') %}{{ medios_arch }}
+                        ],
+                        backgroundColor: '#ffc107'
+                    },
+                    {
+                        label: 'Bajo',
+                        data: [
+                            {% set bajos = riesgos_diagnosticos|selectattr('nivel_riesgo', 'equalto', 'Bajo')|sum(attribute='cantidad') %}{{ bajos }},
+                            {% set bajos_arch = riesgos_archivos|selectattr('nivel_riesgo', 'equalto', 'Bajo')|sum(attribute='cantidad') %}{{ bajos_arch }}
+                        ],
+                        backgroundColor: '#28a745'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Gráfico de Actividad
+    const activityCtx = document.getElementById('activityChart');
+    if (activityCtx) {
+        new Chart(activityCtx, {
+            type: 'line',
+            data: {
+                labels: [{% for mes in diagnosticos_mes %}'{{ mes.mes }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                datasets: [{
+                    label: 'Diagnósticos por Mes',
+                    data: [{% for mes in diagnosticos_mes %}{{ mes.total }}{% if not loop.last %},{% endif %}{% endfor %}],
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
