@@ -11,10 +11,13 @@ from sklearn.preprocessing import LabelEncoder
 import pickle
 import json
 import os
+from contextlib import suppress
 import math
 import logging
 import pandas as pd
 import numpy as np
+import mysql.connector
+from mysql.connector import Error
 from functools import wraps
 
 # ==================== CONFIGURACIÓN ====================
@@ -51,10 +54,11 @@ os.makedirs('static/profile_pics', exist_ok=True)
 
 # ==================== CONFIGURACIÓN DE MYSQL ====================
 DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': '',  # Vacío en XAMPP por defecto
-    'database': 'cybershield_db',
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'user': os.getenv('DB_USER', 'root'),
+    'password': os.getenv('DB_PASSWORD', ''),
+    'database': os.getenv('DB_NAME', 'cybershield_db'),
+    'port': int(os.getenv('DB_PORT', 3306)),
     'charset': 'utf8mb4'
 }
 
