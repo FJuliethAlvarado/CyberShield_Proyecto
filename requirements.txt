@@ -25,6 +25,8 @@ Flask-WTF==1.2.1
 WTForms==3.0.1
 
 gunicorn==21.2.0
+psycopg2-binary==2.9.7
+whitenoise==6.6.0
 
 
 
