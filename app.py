@@ -26,6 +26,11 @@ app.secret_key = 'tu_clave_secreta_super_segura_123456'
 app.config['WTF_CSRF_ENABLED'] = False  # ← AGREGAR ESTA LÍNEA
 csrf = CSRFProtect(app)
 
+# Esta línea es clave para conectar tu app con la base de datos
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+
+db = SQLAlchemy(app)
+
 # Agregar funciones útiles a Jinja2
 app.jinja_env.globals.update(
     min=min,
@@ -49,20 +54,18 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs('static/profile_pics', exist_ok=True)
 
-# ==================== CONFIGURACIÓN DE MYSQL a intenet====================
-DB_CONFIG = DB_CONFIG = {
-    'host': 'switchback.proxy.rlwy.net',
+# ==================== CONFIGURACIÓN DE MYSQL ====================
+DB_CONFIG = {
+    'host': 'localhost',
     'user': 'root',
-    'password': 'KxmfdOSeaZdrCAkjsrobTRahuRluLTNs',
-    'database': 'railway',
-    'port': 55130,
+    'password': '',  # Vacío en XAMPP por defecto
+    'database': 'cybershield_db',
     'charset': 'utf8mb4'
 }
 
 @contextmanager
 def get_db():
     """Conexión a la base de datos"""
-############ VERSIÓN CORREGIDA DE LA CONEXIÓN A LA BASE DE DATOS ##########
     conn = None
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
