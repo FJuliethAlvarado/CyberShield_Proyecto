@@ -1,12 +1,14 @@
-from flask import Flask, render_template, request, flash, redirect, url_for, session, send_file
+from flask import Flask, render_template, request, flash, redirect, url_for, session, send_file, flash
 from flask_wtf.csrf import CSRFProtect
 import mysql.connector
+import psycopg2
 from mysql.connector import Error
 from contextlib import contextmanager
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from sklearn.ensemble import RandomForestClassifier
+from whitenoise import WhiteNoise
 from sklearn.preprocessing import LabelEncoder
 import pickle
 import json
