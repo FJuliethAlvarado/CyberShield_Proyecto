@@ -26,11 +26,6 @@ app.secret_key = 'tu_clave_secreta_super_segura_123456'
 app.config['WTF_CSRF_ENABLED'] = False  # ← AGREGAR ESTA LÍNEA
 csrf = CSRFProtect(app)
 
-# Esta línea es clave para conectar tu app con la base de datos
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
-
-db = SQLAlchemy(app)
-
 # Agregar funciones útiles a Jinja2
 app.jinja_env.globals.update(
     min=min,
@@ -56,10 +51,11 @@ os.makedirs('static/profile_pics', exist_ok=True)
 
 # ==================== CONFIGURACIÓN DE MYSQL ====================
 DB_CONFIG = {
-    'host': 'localhost',
+    'host': 'switchback.proxy.rlwy.net',
     'user': 'root',
-    'password': '',  # Vacío en XAMPP por defecto
-    'database': 'cybershield_db',
+    'password': 'KxmfdOSeaZdrCAkjsrobTRahuRluLTNs',
+    'database': 'cybershield_db',  
+    'port': 55130,
     'charset': 'utf8mb4'
 }
 
