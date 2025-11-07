@@ -51,12 +51,11 @@ os.makedirs('static/profile_pics', exist_ok=True)
 
 # ==================== CONFIGURACIÓN DE MYSQL ====================
 DB_CONFIG = {
-    'host': 'switchback.proxy.rlwy.net',
-    'user': 'root',
-    'password': 'KxmfdOSeaZdrCAkjsrobTRahuRluLTNs',
-    'database': 'cybershield_db',  
-    'port': 55130,
-    'charset': 'utf8mb4'
+    'host': os.environ.get('POSTGRES_HOST'),
+    'user': os.environ.get('POSTGRES_USER'),
+    'password': os.environ.get('POSTGRES_PASSWORD'),
+    'database': os.environ.get('POSTGRES_DATABASE'),
+    'port': os.environ.get('POSTGRES_PORT', 5432)
 }
 
 @contextmanager
