@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="alert alert-warning">
+    <h4 class="alert-heading">Error {{ error_code or 'Error' }}</h4>
+    <p>{{ error_message or 'Ha ocurrido un error en la aplicación.' }}</p>
+    <hr>
+    <a href="{{ url_for('index') }}" class="btn btn-primary">Volver al inicio</a>
+  </div>
+</div>
+{% endblock %}

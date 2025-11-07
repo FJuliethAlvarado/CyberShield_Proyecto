@@ -57,9 +57,11 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="card bg-{{ 'danger' if analisis.nivel_riesgo == 'Alto' else 'warning' if analisis.nivel_riesgo == 'Medio' else 'success' }} text-white">
-                                <div class="card-body text-center">
+                        <div class="col-md-3 fade-in delay-3">
+                                <!-- CORRECCIÓN DEL COLOR DEL NIVEL DE RIESGO -->
+                                {% set riesgo_color = 'danger' if 'Alto' in analisis.nivel_riesgo or 'Muy Alto' in analisis.nivel_riesgo else 'warning' if 'Medio' in analisis.nivel_riesgo else 'success' %}
+                                <div class="card bg-{{ riesgo_color }} text-white h-100">
+                                    <div class="card-body text-center d-flex flex-column justify-content-center">
                                     <i class="fas fa-shield-alt fa-2x mb-2"></i>
                                     <h4>{{ analisis.nivel_riesgo }}</h4>
                                     <small>Nivel de Riesgo</small>
@@ -406,4 +408,5 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endif %}
 });
 </script>
+
 {% endblock %}

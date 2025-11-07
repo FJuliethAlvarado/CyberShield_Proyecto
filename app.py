@@ -854,242 +854,314 @@ def calcular_estadisticas_columnas(df):
 # **FUNCIÓN: Análisis de archivos**
 def analizar_archivo(df):
     """
-    Función para análisis de archivos que detecta anomalías financieras y contables
+    Función para análisis de archivos que detecta anomalías financieras y contables.
+    Se aplica un factor adaptativo según tamaño del archivo para evitar falsos positivos
+    en datasets pequeños.
     """
-    puntuacion = 0
+    puntuacion = 0.0
     anomalias = []
-    
-    # Análisis básico de datos
+
+    # Metadatos
     total_registros = len(df)
     total_columnas = len(df.columns)
-    
-    # ========== DETECCIÓN BÁSICA (TU CÓDIGO ACTUAL) ==========
-    
-    # Detectar valores nulos
+
+    # Factor adaptativo según tamaño del dataset
+    if total_registros >= 100:
+        scale = 1.0
+    elif total_registros >= 30:
+        scale = 0.6
+    elif total_registros >= 10:
+        scale = 0.4
+    else:
+        scale = 0.2
+
+    # Parámetros mínimos para penalizaciones "fuertes"
+    min_strong = 10
+
+    # ========== DETECCIÓN BÁSICA ==========
+
+    # Valores nulos
     nulos_por_columna = df.isnull().sum()
     for columna, nulos in nulos_por_columna.items():
         if nulos > 0:
-            porcentaje = (nulos / total_registros) * 100
-            if porcentaje > 20:
-                puntuacion += 30
-                anomalias.append({
-                    'tipo': 'VALORES NULOS CRÍTICOS',
-                    'columna': columna,
-                    'cantidad': nulos,
-                    'porcentaje': f'{porcentaje:.1f}%',
-                    'categoria': 'Calidad de Datos'
-                })
-            elif porcentaje > 5:
-                puntuacion += 15
-                anomalias.append({
-                    'tipo': 'Valores nulos',
-                    'columna': columna,
-                    'cantidad': nulos,
-                    'porcentaje': f'{porcentaje:.1f}%',
-                    'categoria': 'Calidad de Datos'
-                })
-    
-    # Detectar duplicados
-    duplicados = df.duplicated().sum()
-    if duplicados > 0:
+            porcentaje = (nulos / total_registros) * 100 if total_registros > 0 else 0
+            if total_registros >= min_strong:
+                if porcentaje > 20:
+                    puntuacion += 30 * scale
+                    anomalias.append({
+                        'tipo': 'VALORES NULOS CRÍTICOS',
+                        'columna': columna,
+                        'cantidad': int(nulos),
+                        'porcentaje': f'{porcentaje:.1f}%',
+                        'categoria': 'Calidad de Datos'
+                    })
+                elif porcentaje > 5:
+                    puntuacion += 15 * scale
+                    anomalias.append({
+                        'tipo': 'Valores nulos',
+                        'columna': columna,
+                        'cantidad': int(nulos),
+                        'porcentaje': f'{porcentaje:.1f}%',
+                        'categoria': 'Calidad de Datos'
+                    })
+            else:
+                # Archivo pequeño: sólo alertas muy altas
+                if porcentaje >= 50:
+                    puntuacion += 8 * scale
+                    anomalias.append({
+                        'tipo': 'Valores nulos (archivo pequeño)',
+                        'columna': columna,
+                        'cantidad': int(nulos),
+                        'porcentaje': f'{porcentaje:.1f}%',
+                        'categoria': 'Calidad de Datos'
+                    })
+
+    # Duplicados (amortiguar impacto en archivos pequeños)
+    duplicados = int(df.duplicated().sum())
+    if duplicados > 0 and total_registros > 1:
         porcentaje_dup = (duplicados / total_registros) * 100
-        if porcentaje_dup > 5:
-            puntuacion += 25
-            anomalias.append({
-                'tipo': 'DUPLICADOS EXACTOS - POSIBLE ERROR',
-                'cantidad': duplicados,
-                'porcentaje': f'{porcentaje_dup:.1f}%',
-                'categoria': 'Integridad'
-            })
+        if total_registros >= min_strong:
+            if porcentaje_dup > 5:
+                puntuacion += 25 * scale
+                anomalias.append({
+                    'tipo': 'DUPLICADOS EXACTOS - POSIBLE ERROR',
+                    'cantidad': duplicados,
+                    'porcentaje': f'{porcentaje_dup:.1f}%',
+                    'categoria': 'Integridad'
+                })
+            elif porcentaje_dup > 0:
+                puntuacion += 10 * scale
+                anomalias.append({
+                    'tipo': 'Registros duplicados',
+                    'cantidad': duplicados,
+                    'porcentaje': f'{porcentaje_dup:.1f}%',
+                    'categoria': 'Integridad'
+                })
         else:
-            puntuacion += 15
-            anomalias.append({
-                'tipo': 'Registros duplicados',
-                'cantidad': duplicados,
-                'porcentaje': f'{porcentaje_dup:.1f}%',
-                'categoria': 'Integridad'
-            })
-    
+            if porcentaje_dup > 20:
+                puntuacion += 6 * scale
+                anomalias.append({
+                    'tipo': 'Duplicados (archivo pequeño)',
+                    'cantidad': duplicados,
+                    'porcentaje': f'{porcentaje_dup:.1f}%',
+                    'categoria': 'Integridad'
+                })
+
     # ========== DETECCIÓN FINANCIERA AVANZADA ==========
-    
-    # Identificar columnas monetarias y de fecha
+
     columnas_monetarias = identificar_columnas_monetarias(df)
     columnas_fecha = identificar_columnas_fecha(df)
-    
-    # 1. Detectar transacciones redondas (posible fraude)
+
+    # Transacciones redondas
     for col in columnas_monetarias:
-        transacciones_redondas = detectar_transacciones_redondas(df[col])
-        if transacciones_redondas > 0:
-            porcentaje = (transacciones_redondas / total_registros) * 100
-            if porcentaje > 20:
-                puntuacion += 35
-                anomalias.append({
-                    'tipo': 'TRANSACCIONES REDONDAS SOSPECHOSAS',
-                    'columna': col,
-                    'cantidad': transacciones_redondas,
-                    'porcentaje': f'{porcentaje:.1f}%',
-                    'categoria': 'Fraude',
-                    'descripcion': 'Montos exactos pueden indicar manipulación'
-                })
+        nonnull_count = int(df[col].dropna().shape[0])
+        transacciones_redondas = int(detectar_transacciones_redondas(df[col]))
+        if transacciones_redondas > 0 and nonnull_count > 0:
+            porcentaje = (transacciones_redondas / nonnull_count) * 100
+            if nonnull_count >= min_strong:
+                if porcentaje > 20:
+                    puntuacion += 35 * scale
+                    anomalias.append({
+                        'tipo': 'TRANSACCIONES REDONDAS SOSPECHOSAS',
+                        'columna': col,
+                        'cantidad': int(transacciones_redondas),
+                        'porcentaje': f'{porcentaje:.1f}%',
+                        'categoria': 'Fraude'
+                    })
+                elif porcentaje > 5:
+                    puntuacion += 12 * scale
+                    anomalias.append({
+                        'tipo': 'Transacciones redondas',
+                        'columna': col,
+                        'cantidad': int(transacciones_redondas),
+                        'porcentaje': f'{porcentaje:.1f}%',
+                        'categoria': 'Patrón Inusual'
+                    })
             else:
-                puntuacion += 15
-                anomalias.append({
-                    'tipo': 'Transacciones redondas',
-                    'columna': col,
-                    'cantidad': transacciones_redondas,
-                    'porcentaje': f'{porcentaje:.1f}%',
-                    'categoria': 'Patrón Inusual'
-                })
-    
-    # 2. Detectar outliers financieros (errores o fraudes)
+                if porcentaje > 50:
+                    puntuacion += 6 * scale
+                    anomalias.append({
+                        'tipo': 'Transacciones redondas (muestra pequeña)',
+                        'columna': col,
+                        'cantidad': int(transacciones_redondas),
+                        'porcentaje': f'{porcentaje:.1f}%',
+                        'categoria': 'Patrón Inusual'
+                    })
+
+    # Outliers financieros
     for col in columnas_monetarias:
-        outliers_financieros = detectar_outliers_financieros(df[col])
-        if outliers_financieros > 0:
-            porcentaje = (outliers_financieros / total_registros) * 100
-            if porcentaje > 5:
-                puntuacion += 30
+        nonnull_count = int(df[col].dropna().shape[0])
+        outliers_financieros = int(detectar_outliers_financieros(df[col]))
+        if outliers_financieros > 0 and nonnull_count > 0:
+            porcentaje = (outliers_financieros / nonnull_count) * 100
+            if nonnull_count >= min_strong and porcentaje > 5:
+                puntuacion += 30 * scale
                 anomalias.append({
                     'tipo': 'VALORES EXTREMOS EN MONTOS',
                     'columna': col,
-                    'cantidad': outliers_financieros,
+                    'cantidad': int(outliers_financieros),
                     'porcentaje': f'{porcentaje:.1f}%',
                     'categoria': 'Riesgo Financiero'
                 })
-    
-    # 3. Detectar transacciones fuera de horario comercial
+            elif porcentaje > 25:
+                puntuacion += 8 * scale
+                anomalias.append({
+                    'tipo': 'Valores extremos (muestra pequeña)',
+                    'columna': col,
+                    'cantidad': int(outliers_financieros),
+                    'porcentaje': f'{porcentaje:.1f}%',
+                    'categoria': 'Riesgo Financiero'
+                })
+
+    # Transacciones fuera de horario
     for col in columnas_fecha:
-        transacciones_nocturnas = detectar_transacciones_nocturnas(df[col])
-        if transacciones_nocturnas > 0:
-            porcentaje = (transacciones_nocturnas / total_registros) * 100
+        nonnull_count = int(df[col].dropna().shape[0])
+        transacciones_nocturnas = int(detectar_transacciones_nocturnas(df[col]))
+        if transacciones_nocturnas > 0 and nonnull_count >= min_strong:
+            porcentaje = (transacciones_nocturnas / nonnull_count) * 100
             if porcentaje > 15:
-                puntuacion += 20
+                puntuacion += 20 * scale
                 anomalias.append({
                     'tipo': 'TRANSACCIONES FUERA DE HORARIO',
                     'columna': col,
-                    'cantidad': transacciones_nocturnas,
+                    'cantidad': int(transacciones_nocturnas),
                     'porcentaje': f'{porcentaje:.1f}%',
                     'categoria': 'Control Interno'
                 })
-    
-    # 4. Análisis de distribución (Ley de Benford)
+
+    # Ley de Benford (solo con suficientes datos)
     for col in columnas_monetarias:
-        if len(df[col].dropna()) > 100:  # Solo aplicar con suficientes datos
+        if len(df[col].dropna()) > 100:
             desviacion_benford = analizar_ley_benford(df[col])
             if desviacion_benford > 0.15:
-                puntuacion += 25
+                puntuacion += 25 * scale
                 anomalias.append({
                     'tipo': 'DESVIACIÓN LEY DE BENFORD',
                     'columna': col,
                     'valor': f'{desviacion_benford:.3f}',
-                    'categoria': 'Análisis Estadístico',
-                    'descripcion': 'Posible manipulación de datos numéricos'
+                    'categoria': 'Análisis Estadístico'
                 })
-    
-    # 5. Detectar saltos bruscos en secuencias
+
+    # Saltos bruscos
     for col in columnas_monetarias:
-        saltos_bruscos = detectar_saltos_bruscos(df[col])
-        if saltos_bruscos > 0:
-            puntuacion += 15
+        nonnull_count = int(df[col].dropna().shape[0])
+        saltos_bruscos = int(detectar_saltos_bruscos(df[col]))
+        if saltos_bruscos > 0 and nonnull_count >= min_strong:
+            puntuacion += 12 * scale
             anomalias.append({
                 'tipo': 'Saltos bruscos en valores',
                 'columna': col,
-                'cantidad': saltos_bruscos,
+                'cantidad': int(saltos_bruscos),
                 'categoria': 'Consistencia'
             })
-    
-    # 6. Detectar transacciones en fines de semana
+
+    # Transacciones en fin de semana
     for col in columnas_fecha:
-        transacciones_finde = detectar_transacciones_finde(df[col])
-        if transacciones_finde > 0:
-            porcentaje = (transacciones_finde / total_registros) * 100
+        nonnull_count = int(df[col].dropna().shape[0])
+        transacciones_finde = int(detectar_transacciones_finde(df[col]))
+        if transacciones_finde > 0 and nonnull_count >= min_strong:
+            porcentaje = (transacciones_finde / nonnull_count) * 100
             if porcentaje > 10:
-                puntuacion += 15
+                puntuacion += 12 * scale
                 anomalias.append({
                     'tipo': 'Transacciones en fin de semana',
                     'columna': col,
-                    'cantidad': transacciones_finde,
+                    'cantidad': int(transacciones_finde),
                     'porcentaje': f'{porcentaje:.1f}%',
                     'categoria': 'Patrón Inusual'
                 })
-    
-    # 7. Detectar asientos desbalanceados (Débito != Crédito)
-    desbalance = detectar_asientos_desbalanceados(df)
+
+    # Asientos desbalanceados (requerir algo de datos)
+    desbalance = int(detectar_asientos_desbalanceados(df))
     if desbalance > 0:
-        puntuacion += 40
+        if total_registros >= 5:
+            puntuacion += 30 * scale
+        else:
+            puntuacion += 10 * scale
         anomalias.append({
             'tipo': 'ASIENTOS CONTABLES DESBALANCEADOS',
-            'cantidad': desbalance,
-            'categoria': 'Error Contable',
-            'descripcion': 'Suma de débitos diferente a suma de créditos'
+            'cantidad': int(desbalance),
+            'categoria': 'Error Contable'
         })
-    
-    # 8. Detectar secuencias numéricas rotas
+
+    # Huecos en secuencia (muestras pequeñas penalizadas menos)
     for col in df.select_dtypes(include=[np.number]).columns:
-        huecos_secuencia = detectar_huecos_secuencia(df[col])
+        huecos_secuencia = int(detectar_huecos_secuencia(df[col]))
         if huecos_secuencia > 0:
-            puntuacion += 10
+            puntuacion += 6 * scale
             anomalias.append({
                 'tipo': 'Huecos en secuencia numérica',
                 'columna': col,
-                'cantidad': huecos_secuencia,
+                'cantidad': int(huecos_secuencia),
                 'categoria': 'Integridad'
             })
-    
-    # ========== ANÁLISIS DE COLUMNAS NUMÉRICAS==========
-    
+
+    # Outliers por columnas numéricas (IQR)
     columnas_numericas = df.select_dtypes(include=[np.number]).columns
     for col in columnas_numericas:
-        # Detectar outliers usando IQR
         Q1 = df[col].quantile(0.25)
         Q3 = df[col].quantile(0.75)
         IQR = Q3 - Q1
         lower_bound = Q1 - 1.5 * IQR
         upper_bound = Q3 + 1.5 * IQR
-        
-        outliers = ((df[col] < lower_bound) | (df[col] > upper_bound)).sum()
-        
-        if outliers > 0:
-            porcentaje_out = (outliers / total_registros) * 100
-            if porcentaje_out > 10:
-                puntuacion += 25
-                anomalias.append({
-                    'tipo': 'OUTLIERS CRÍTICOS',
-                    'columna': col,
-                    'cantidad': outliers,
-                    'porcentaje': f'{porcentaje_out:.1f}%',
-                    'categoria': 'Calidad de Datos'
-                })
+
+        outliers = int(((df[col] < lower_bound) | (df[col] > upper_bound)).sum())
+        nonnull_count = int(df[col].dropna().shape[0])
+        if outliers > 0 and nonnull_count > 0:
+            porcentaje_out = (outliers / nonnull_count) * 100
+            if nonnull_count >= min_strong:
+                if porcentaje_out > 10:
+                    puntuacion += 25 * scale
+                    anomalias.append({
+                        'tipo': 'OUTLIERS CRÍTICOS',
+                        'columna': col,
+                        'cantidad': int(outliers),
+                        'porcentaje': f'{porcentaje_out:.1f}%',
+                        'categoria': 'Calidad de Datos'
+                    })
+                else:
+                    puntuacion += 8 * scale
+                    anomalias.append({
+                        'tipo': 'Valores atípicos',
+                        'columna': col,
+                        'cantidad': int(outliers),
+                        'porcentaje': f'{porcentaje_out:.1f}%',
+                        'categoria': 'Calidad de Datos'
+                    })
             else:
-                puntuacion += 10
-                anomalias.append({
-                    'tipo': 'Valores atípicos',
-                    'columna': col,
-                    'cantidad': outliers,
-                    'porcentaje': f'{porcentaje_out:.1f}%',
-                    'categoria': 'Calidad de Datos'
-                })
-    
-    # ========== CLASIFICACIÓN DE RIESGO MEJORADA ==========
-    
-    if puntuacion >= 80:
+                if porcentaje_out > 30:
+                    puntuacion += 6 * scale
+                    anomalias.append({
+                        'tipo': 'Valores atípicos (muestra pequeña)',
+                        'columna': col,
+                        'cantidad': int(outliers),
+                        'porcentaje': f'{porcentaje_out:.1f}%',
+                        'categoria': 'Calidad de Datos'
+                    })
+
+    # ========== CLASIFICACIÓN DE RIESGO ==========
+
+    puntuacion_final = min(100, round(puntuacion, 2))
+
+    if puntuacion_final >= 85:
         nivel_riesgo = 'Muy Alto'
-    elif puntuacion >= 50:
+    elif puntuacion_final >= 60:
         nivel_riesgo = 'Alto'
-    elif puntuacion >= 25:
+    elif puntuacion_final >= 35:
         nivel_riesgo = 'Medio'
     else:
         nivel_riesgo = 'Bajo'
-    
+
     return {
         'total_registros': total_registros,
         'total_columnas': total_columnas,
-        'puntuacion_riesgo': min(100, puntuacion),
+        'puntuacion_riesgo': puntuacion_final,
         'nivel_riesgo': nivel_riesgo,
         'anomalias': anomalias,
         'metricas_avanzadas': {
             'columnas_monetarias': columnas_monetarias,
             'columnas_fecha': columnas_fecha,
-            'total_anomalias_financieras': len([a for a in anomalias if a['categoria'] in ['Fraude', 'Riesgo Financiero']])
+            'total_anomalias_financieras': len([a for a in anomalias if a.get('categoria') in ['Fraude', 'Riesgo Financiero']])
         }
     }
 
