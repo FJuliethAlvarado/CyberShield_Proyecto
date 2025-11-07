@@ -1821,7 +1821,7 @@ if __name__ == '__main__':
     print("CYBERSHIELD PYME INICIANDO...")
     print("="*50)
     print("Base de datos: cybershield_db")
-    print("🌐 URL: http://localhost:5000")
+    print("🌐 URL: http://localhost:8080")
     print("="*50 + "\n")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='0.0.0.0', port=8080)
