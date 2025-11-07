@@ -11,13 +11,10 @@ from sklearn.preprocessing import LabelEncoder
 import pickle
 import json
 import os
-from contextlib import suppress
 import math
 import logging
 import pandas as pd
 import numpy as np
-import mysql.connector
-from mysql.connector import Error
 from functools import wraps
 
 # ==================== CONFIGURACIÓN ====================
@@ -52,19 +49,20 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs('static/profile_pics', exist_ok=True)
 
-# ==================== CONFIGURACIÓN DE MYSQL ====================
-DB_CONFIG = {
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'user': os.getenv('DB_USER', 'root'),
-    'password': os.getenv('DB_PASSWORD', ''),
-    'database': os.getenv('DB_NAME', 'cybershield_db'),
-    'port': int(os.getenv('DB_PORT', 3306)),
+# ==================== CONFIGURACIÓN DE MYSQL a intenet====================
+DB_CONFIG = DB_CONFIG = {
+    'host': 'switchback.proxy.rlwy.net',
+    'user': 'root',
+    'password': 'KxmfdOSeaZdrCAkjsrobTRahuRluLTNs',
+    'database': 'railway',
+    'port': 55130,
     'charset': 'utf8mb4'
 }
 
 @contextmanager
 def get_db():
     """Conexión a la base de datos"""
+############ VERSIÓN CORREGIDA DE LA CONEXIÓN A LA BASE DE DATOS ##########
     conn = None
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
@@ -1825,7 +1823,7 @@ if __name__ == '__main__':
     print("CYBERSHIELD PYME INICIANDO...")
     print("="*50)
     print("Base de datos: cybershield_db")
-    print("🌐 URL: http://localhost:8080")
+    print("🌐 URL: http://localhost:5000")
     print("="*50 + "\n")
     
-    app.run(debug=False, host='0.0.0.0', port=8080)
+    app.run(debug=True, host='0.0.0.0', port=5000)
