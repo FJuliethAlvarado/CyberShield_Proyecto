@@ -142,11 +142,11 @@
 
                             <!-- Plan -->
                             <td class="text-center">
-                                <span class="badge {{ 'bg-warning' if usuario.plan == 'empresarial' else 'bg-success' if usuario.plan == 'premium' else 'bg-secondary' }} px-3 py-2">
-                                    {% if usuario.plan == 'empresarial' %}
-                                        <i class="fas fa-building"></i>
-                                    {% elif usuario.plan == 'premium' %}
+                                <span class="badge {{ 'bg-success' if usuario.plan == 'premium' else 'bg-warning' if usuario.plan == 'lite' else 'bg-secondary' }} px-3 py-2">
+                                    {% if usuario.plan == 'premium' %}
                                         <i class="fas fa-crown"></i>
+                                    {% elif usuario.plan == 'lite' %}
+                                        <i class="fas fa-star"></i>
                                     {% else %}
                                         <i class="fas fa-tag"></i>
                                     {% endif %}
@@ -283,9 +283,8 @@
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Plan *</label>
                                     <select name="plan" class="form-select" required>
-                                        <option value="gratuito">🆓 Plan Gratuito</option>
-                                        <option value="premium">⭐ Plan Premium</option>
-                                        <option value="empresarial">🏢 Plan Empresarial</option>
+                                        <option value="lite">⭐ Plan Lite - $29.900</option>
+                                        <option value="premium">💎 Plan Premium - $49.900</option>
                                     </select>
                                 </div>
                             </div>
@@ -342,14 +341,11 @@
                                 <i class="fas fa-box"></i> Seleccionar Nuevo Plan:
                             </label>
                             <select name="plan" class="form-select form-select-lg" required>
-                                <option value="gratuito" {{ 'selected' if usuario.plan == 'gratuito' else '' }}>
-                                    🆓 Plan Gratuito - $0/mes
+                                <option value="lite" {{ 'selected' if usuario.plan == 'lite' else '' }}>
+                                    ⭐ Plan Lite - $29.900/mes
                                 </option>
                                 <option value="premium" {{ 'selected' if usuario.plan == 'premium' else '' }}>
-                                    ⭐ Plan Premium - $49.900/mes
-                                </option>
-                                <option value="empresarial" {{ 'selected' if usuario.plan == 'empresarial' else '' }}>
-                                    🏢 Plan Empresarial - Personalizado
+                                    💎 Plan Premium - $49.900/mes
                                 </option>
                             </select>
                         </div>

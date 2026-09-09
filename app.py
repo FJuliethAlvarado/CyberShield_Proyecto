@@ -1,8 +1,5 @@
 from flask import Flask, render_template, request, flash, redirect, url_for, session, send_file, flash
 from flask_wtf.csrf import CSRFProtect
-import mysql.connector
-import psycopg2
-from mysql.connector import Error
 from contextlib import contextmanager
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -10,14 +7,28 @@ from datetime import datetime
 from sklearn.ensemble import RandomForestClassifier
 from whitenoise import WhiteNoise
 from sklearn.preprocessing import LabelEncoder
+import io
 import pickle
 import json
 import os
 import math
 import logging
+import sys
 import pandas as pd
 import numpy as np
 from functools import wraps
+
+try:
+    import mysql.connector
+    from mysql.connector import Error as MySQLError
+except ImportError:
+    mysql = None
+    MySQLError = Exception
+
+try:
+    import psycopg2
+except ImportError:
+    psycopg2 = None
 
 # ==================== CONFIGURACIÓN ====================
 logging.basicConfig(level=logging.INFO)
@@ -25,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta_super_segura_123456'
-app.config['WTF_CSRF_ENABLED'] = False  # ← AGREGAR ESTA LÍNEA
+app.config['WTF_CSRF_ENABLED'] = False
 csrf = CSRFProtect(app)
 
 # Agregar funciones útiles a Jinja2
@@ -51,77 +62,279 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs('static/profile_pics', exist_ok=True)
 
-# ==================== CONFIGURACIÓN DE MYSQL ====================
+# ==================== CONFIGURACIÓN DE BASE DE DATOS ====================
+def _safe_env_value(name, default=''):
+    """Normaliza valores de entorno para evitar UnicodeDecodeError por caracteres inválidos."""
+    value = os.environ.get(name, default)
+    if value is None:
+        return default
+    if isinstance(value, bytes):
+        try:
+            return value.decode('utf-8')
+        except UnicodeDecodeError:
+            return value.decode('utf-8', errors='replace')
+    return str(value)
+
+
 DB_CONFIG = {
-    'host': os.environ.get('DB_HOST', 'shortline.proxy.rlwy.net'),
-    'user': os.environ.get('DB_USER', 'root'),
-    'password': os.environ.get('DB_PASSWORD', 'thFrJkBkQaQoPGGEHInZUmupLHFxCGLg'),
-    'database': os.environ.get('DB_NAME', 'railway'),
-    'port': int(os.environ.get('DB_PORT', 59135))
+    'host': _safe_env_value('DB_HOST', 'localhost'),
+    'user': _safe_env_value('DB_USER', 'postgres'),
+    'password': _safe_env_value('DB_PASSWORD', 'postgres'),
+    'database': _safe_env_value('DB_NAME', 'cybershield'),
+    'port': int(_safe_env_value('DB_PORT', '5432'))
 }
+
+
+def _read_dataframe_from_file(filepath):
+    """Lee CSV/Excel con soporte a codificaciones comunes y fallback seguro."""
+    file_path = str(filepath)
+    lower_path = file_path.lower()
+
+    if lower_path.endswith('.csv'):
+        with open(file_path, 'rb') as f:
+            raw = f.read()
+
+        encodings = ['utf-8-sig', 'utf-16', 'cp1252', 'latin-1']
+        last_error = None
+
+        for encoding in encodings:
+            try:
+                text = raw.decode(encoding)
+                return pd.read_csv(io.StringIO(text), sep=None, engine='python')
+            except (UnicodeDecodeError, ValueError, pd.errors.ParserError) as exc:
+                last_error = exc
+                continue
+
+        logger.warning('No se pudo decodificar el CSV %s con codificaciones comunes; se usará fallback. Error: %s', file_path, last_error)
+        return pd.read_csv(file_path, sep=None, engine='python', encoding_errors='replace')
+
+    return pd.read_excel(file_path)
+
+
+def get_database_connection():
+    """Conexión compatible con PostgreSQL/Render y fallback a MySQL."""
+    database_url = _safe_env_value('DATABASE_URL', '')
+    db_type = _safe_env_value('DB_TYPE', 'postgresql').lower()
+
+    if database_url:
+        if psycopg2 is None:
+            raise RuntimeError('psycopg2 no está instalado')
+        try:
+            return psycopg2.connect(database_url, sslmode='require')
+        except Exception as exc:
+            logger.warning('DATABASE_URL inválida, intentando fallback a variables PostgreSQL: %s', exc)
+
+    if db_type == 'mysql' and mysql is not None:
+        return mysql.connector.connect(**DB_CONFIG)
+
+    if psycopg2 is not None:
+        pg_host = _safe_env_value('PGHOST', DB_CONFIG['host'])
+        pg_port = int(_safe_env_value('PGPORT', str(DB_CONFIG['port'])))
+        pg_user = _safe_env_value('PGUSER', DB_CONFIG['user'])
+        pg_password = _safe_env_value('PGPASSWORD', DB_CONFIG['password'])
+        pg_dbname = _safe_env_value('PGDATABASE', DB_CONFIG['database'])
+
+        try:
+            return psycopg2.connect(
+                host=pg_host,
+                port=pg_port,
+                user=pg_user,
+                password=pg_password,
+                dbname=pg_dbname
+            )
+        except Exception as exc:
+            logger.warning('No se pudo conectar con PostgreSQL usando PG*; intentando MySQL si está disponible: %s', exc)
+
+    if mysql is not None:
+        return mysql.connector.connect(**DB_CONFIG)
+
+    raise RuntimeError('No hay driver de base de datos disponible. Instala psycopg2-binary o mysql-connector-python.')
+
+
+class DatabaseConnectionProxy:
+    """Adaptador que hace compatible PostgreSQL con el código existente."""
+    def __init__(self, connection):
+        self._connection = connection
+
+    def __getattr__(self, item):
+        return getattr(self._connection, item)
+
+    def cursor(self, *args, **kwargs):
+        dictionary = kwargs.pop('dictionary', False)
+        if dictionary and psycopg2 is not None:
+            from psycopg2.extras import RealDictCursor
+            return self._connection.cursor(*args, cursor_factory=RealDictCursor, **kwargs)
+        return self._connection.cursor(*args, **kwargs)
+
 
 @contextmanager
 def get_db():
-    """Conexión a la base de datos"""
+    """Conexión a la base de datos desde PostgreSQL/Render o MySQL."""
     conn = None
     try:
-        conn = mysql.connector.connect(**DB_CONFIG)
+        conn = DatabaseConnectionProxy(get_database_connection())
         yield conn
-    except Error as e:
-        logger.error(f"Error BD: {e}")
-        if conn:
-            conn.rollback()
+    except Exception as e:
+        logger.error(f'Error BD: {e}')
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
         raise
     finally:
-        if conn and conn.is_connected():
+        if conn is not None:
             conn.close()
 
 # ==================== MODELO DE MACHINE LEARNING ====================
 class RiskPredictor:
     def __init__(self):
-        self.model = RandomForestClassifier(n_estimators=100, random_state=42)
+        self.model = RandomForestClassifier(n_estimators=250, random_state=42, class_weight='balanced')
+        self.file_model = RandomForestClassifier(n_estimators=300, random_state=42, class_weight='balanced')
+        self.is_trained = False
+        self.file_is_trained = False
         self.le_tipo = LabelEncoder()
         self.le_impacto = LabelEncoder()
         self.le_probabilidad = LabelEncoder()
-        self.is_trained = False
-        
+
     def train_model(self):
-        """Entrena el modelo con datos históricos"""
-        # Datos de entrenamiento simulados
+        """Entrena el modelo con datos históricos más completos, incluyendo contexto operativo y de seguridad."""
         X_train = [
-            [0, 2, 2],  # Tecnológico, Alto, Alta -> Crítico
-            [0, 2, 1],  # Tecnológico, Alto, Media -> Alto
-            [1, 1, 2],  # Financiero, Medio, Alta -> Alto
-            [2, 0, 0],  # Operativo, Bajo, Baja -> Bajo
-            [3, 2, 2],  # Reputacional, Alto, Alta -> Crítico
-            [0, 1, 1],  # Tecnológico, Medio, Media -> Medio
-            [1, 2, 2],  # Financiero, Alto, Alta -> Crítico
-            [2, 1, 0],  # Operativo, Medio, Baja -> Medio
-            [3, 0, 1],  # Reputacional, Bajo, Media -> Bajo
-            [0, 2, 0],  # Tecnológico, Alto, Baja -> Medio
+            [0, 2, 2, 1, 2, 2, 2, 2, 1, 1],
+            [1, 2, 2, 2, 2, 3, 2, 2, 1, 1],
+            [2, 2, 2, 2, 3, 3, 2, 2, 1, 2],
+            [3, 2, 2, 3, 3, 3, 3, 2, 2, 2],
+            [0, 1, 1, 0, 1, 0, 1, 0, 0, 0],
+            [0, 2, 1, 2, 1, 1, 1, 1, 1, 1],
+            [1, 1, 2, 1, 2, 2, 2, 1, 1, 1],
+            [2, 1, 2, 1, 2, 2, 2, 2, 1, 1],
+            [3, 2, 2, 2, 3, 3, 3, 2, 2, 2],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [1, 0, 1, 1, 0, 1, 1, 0, 1, 0],
+            [2, 1, 1, 2, 1, 2, 2, 1, 1, 1],
+            [3, 1, 2, 2, 2, 2, 2, 2, 1, 1],
+            [4, 2, 2, 3, 3, 3, 3, 2, 2, 2],
+            [0, 2, 1, 1, 1, 0, 1, 1, 0, 1],
+            [1, 2, 1, 2, 2, 2, 2, 1, 1, 2],
+            [2, 2, 2, 2, 2, 2, 2, 2, 1, 2],
+            [3, 2, 2, 3, 3, 3, 3, 2, 2, 2],
+            [4, 2, 2, 3, 3, 3, 3, 2, 2, 2],
+            [2, 1, 1, 1, 1, 1, 1, 1, 1, 0]
         ]
-        y_train = [3, 2, 2, 0, 3, 1, 3, 1, 0, 1]  # 0=Bajo, 1=Medio, 2=Alto, 3=Crítico
-        
+        y_train = [3, 3, 3, 3, 1, 2, 2, 2, 3, 0, 1, 2, 2, 3, 1, 2, 3, 3, 3, 2]
         self.model.fit(X_train, y_train)
         self.is_trained = True
-        
-    def predict_risk(self, tipo_riesgo, impacto, probabilidad):
-        """Predice el nivel de riesgo usando ML"""
+
+    def train_file_model(self):
+        """Entrena un modelo más completo para evaluar documentos y archivos."""
+        X_train = [
+            [1, 0, 0, 0, 85, 15, 1],
+            [4, 1, 0, 1, 70, 28, 4],
+            [7, 3, 1, 2, 58, 40, 7],
+            [12, 5, 2, 3, 42, 58, 12],
+            [18, 8, 4, 5, 30, 70, 18],
+            [2, 0, 0, 0, 90, 10, 2],
+            [6, 2, 1, 1, 76, 22, 6],
+            [10, 4, 2, 2, 63, 35, 10],
+            [14, 7, 3, 4, 48, 50, 15],
+            [20, 10, 5, 6, 34, 66, 18],
+            [28, 16, 9, 8, 12, 88, 30],
+            [35, 22, 12, 10, 6, 94, 38],
+        ]
+        y_train = [0, 1, 1, 2, 3, 0, 1, 1, 2, 2, 3, 3]
+        self.file_model.fit(X_train, y_train)
+        self.file_is_trained = True
+
+    def _extract_file_features(self, df):
+        total_rows = max(1, len(df))
+        total_cols = max(1, len(df.columns))
+        total_cells = total_rows * total_cols
+
+        null_ratio = (df.isna().sum().sum() / total_cells) * 100
+        empty_ratio = (df.astype(str).apply(lambda s: s.str.strip().eq('')).sum().sum() / total_cells) * 100
+        duplicate_ratio = df.duplicated().mean() * 100
+
+        numeric_cols = df.select_dtypes(include=[np.number]).columns
+        outlier_score = 0.0
+        numeric_count = 0
+        for col in numeric_cols:
+            series = df[col].dropna()
+            if series.empty:
+                continue
+            numeric_count += 1
+            q1 = series.quantile(0.25)
+            q3 = series.quantile(0.75)
+            iqr = q3 - q1
+            lower = q1 - 1.5 * iqr
+            upper = q3 + 1.5 * iqr
+            outliers = ((series < lower) | (series > upper)).mean() * 100
+            outlier_score += outliers
+
+        outlier_ratio = outlier_score / max(1, numeric_count)
+        numeric_ratio = (len(numeric_cols) / total_cols) * 100
+        string_ratio = 100 - numeric_ratio
+        inconsistency_ratio = float(df.astype(str).apply(lambda s: s.str.contains(r'[^0-9.,-]', case=False, na=False)).sum().sum()) / max(1, total_cells) * 100
+
+        return [
+            null_ratio,
+            empty_ratio,
+            duplicate_ratio,
+            outlier_ratio,
+            numeric_ratio,
+            string_ratio,
+            inconsistency_ratio,
+        ]
+
+    def predict_file_risk(self, df):
+        """Calcula riesgo de un archivo basado en calidad y anomalías."""
+        if not self.file_is_trained:
+            self.train_file_model()
+
+        features = self._extract_file_features(df)
+        prediction = self.file_model.predict([features])[0]
+        proba = self.file_model.predict_proba([features])[0]
+
+        nivel_map = {0: 'Bajo', 1: 'Medio', 2: 'Alto', 3: 'Crítico'}
+        return nivel_map[prediction], proba
+
+    def predict_risk(self, tipo_riesgo, impacto, probabilidad, sector=None, tamano=None,
+                    historial_incidentes=None, sensibilidad_datos=None,
+                    controles_seguridad=None, copias_respaldo=None, mfa=None):
+        """Predice el nivel de riesgo usando ML con contexto operacional y de seguridad."""
         if not self.is_trained:
             self.train_model()
-            
-        # Mapeo manual de valores
-        tipo_map = {'Tecnológico': 0, 'Financiero': 1, 'Operativo': 2, 'Reputacional': 3, 'Legal': 4}
+
+        tipo_map = {'Tecnológico': 0, 'Financiero': 1, 'Operativo': 2, 'Reputacional': 3, 'Legal': 4, 'Comercial': 5}
         impacto_map = {'Bajo': 0, 'Medio': 1, 'Alto': 2}
         prob_map = {'Baja': 0, 'Media': 1, 'Alta': 2}
-        
+        sector_map = {'Tecnología': 0, 'Financiero': 1, 'Salud': 2, 'Retail': 3, 'Manufactura': 4, 'Servicios': 5, 'Educación': 6, 'Gobierno': 7, 'Otro': 8}
+        tamano_map = {'Micro': 0, 'Pequeña': 1, 'Mediana': 2, 'Grande': 3}
+        historial_map = {'Nunca': 0, 'Única vez': 1, 'Varios': 2, 'Frecuentes': 3}
+        sensibilidad_map = {'Baja': 0, 'Media': 1, 'Alta': 2}
+        controles_map = {'Fuertes': 0, 'Medios': 1, 'Bajos': 2}
+        respaldo_map = {'Diarias': 0, 'Regulares': 1, 'Inconsistentes': 2}
+        mfa_map = {'Total': 0, 'Parcial': 1, 'Ninguna': 2}
+
         tipo_encoded = tipo_map.get(tipo_riesgo, 0)
         impacto_encoded = impacto_map.get(impacto, 0)
         prob_encoded = prob_map.get(probabilidad, 0)
-        
-        prediction = self.model.predict([[tipo_encoded, impacto_encoded, prob_encoded]])[0]
-        proba = self.model.predict_proba([[tipo_encoded, impacto_encoded, prob_encoded]])[0]
-        
+        sector_encoded = sector_map.get(sector, sector_map.get('Otro', 8))
+        tamano_encoded = tamano_map.get(tamano, tamano_map.get('Micro', 0))
+        historial_encoded = historial_map.get(historial_incidentes, historial_map.get('Nunca', 0))
+        sensibilidad_encoded = sensibilidad_map.get(sensibilidad_datos, sensibilidad_map.get('Media', 1))
+        controles_encoded = controles_map.get(controles_seguridad, controles_map.get('Medios', 1))
+        respaldo_encoded = respaldo_map.get(copias_respaldo, respaldo_map.get('Regulares', 1))
+        mfa_encoded = mfa_map.get(mfa, mfa_map.get('Parcial', 1))
+
+        features = [
+            tipo_encoded, impacto_encoded, prob_encoded,
+            sector_encoded, tamano_encoded, historial_encoded,
+            sensibilidad_encoded, controles_encoded, respaldo_encoded, mfa_encoded
+        ]
+
+        prediction = self.model.predict([features])[0]
+        proba = self.model.predict_proba([features])[0]
+
         nivel_map = {0: 'Bajo', 1: 'Medio', 2: 'Alto', 3: 'Crítico'}
         return nivel_map[prediction], proba
 
@@ -130,26 +343,19 @@ risk_predictor = RiskPredictor()
 
 # ==================== CONFIGURACIÓN DE PLANES ====================
 PLANES = {
-    'gratuito': {
-        'nombre': 'Plan Gratuito',
-        'diagnosticos_mes': 3,  # Número entero, no float('inf')
-        'archivos_mes': 1,
-        'reportes_pdf': False,
-        'precio': 0
+    'lite': {
+        'nombre': 'Plan Lite',
+        'diagnosticos_mes': 10,
+        'archivos_mes': 5,
+        'reportes_pdf': True,
+        'precio': 29900
     },
     'premium': {
         'nombre': 'Plan Premium',
-        'diagnosticos_mes': 999999,  # Número grande para "ilimitado"
-        'archivos_mes': 20,
+        'diagnosticos_mes': 999999,
+        'archivos_mes': 50,
         'reportes_pdf': True,
         'precio': 49900
-    },
-    'empresarial': {
-        'nombre': 'Plan Empresarial',
-        'diagnosticos_mes': 999999,  # Número grande para "ilimitado"
-        'archivos_mes': 999999,
-        'reportes_pdf': True,
-        'precio': 99900
     }
 }
 
@@ -165,25 +371,22 @@ def get_user_by_id(user_id):
         return cursor.fetchone()
 
 def get_user_stats(user_id):
-    """Obtiene estadísticas del usuario - VERSIÓN CORREGIDA"""
+    """Obtiene estadísticas del usuario."""
     with get_db() as conn:
         cursor = conn.cursor(dictionary=True)
-        
-        # Diagnosticos realizados (total)
+
         cursor.execute("SELECT COUNT(*) as total FROM diagnosticos WHERE usuario_id = %s", (user_id,))
         diagnosticos = cursor.fetchone()['total']
-        
-        # Archivos analizados
+
         cursor.execute("SELECT COUNT(*) as total FROM archivos_analizados WHERE usuario_id = %s", (user_id,))
         archivos = cursor.fetchone()['total']
-        
-        # Diagnosticos este mes - USAR fecha_analisis
+
         cursor.execute("""
-            SELECT COUNT(*) as total FROM diagnosticos 
-            WHERE usuario_id = %s AND MONTH(fecha_analisis) = MONTH(CURRENT_DATE())
+            SELECT COUNT(*) as total FROM diagnosticos
+            WHERE usuario_id = %s AND EXTRACT(MONTH FROM fecha_analisis) = EXTRACT(MONTH FROM CURRENT_DATE)
         """, (user_id,))
         diagnosticos_mes = cursor.fetchone()['total']
-        
+
         return {
             'diagnosticos_realizados': diagnosticos,
             'archivos_analizados': archivos,
@@ -191,36 +394,30 @@ def get_user_stats(user_id):
         }
 
 def calcular_diagnosticos_restantes(user_id):
-    """Calcula diagnósticos restantes este mes - VERSIÓN CORREGIDA"""
+    """Calcula diagnósticos restantes este mes."""
     with get_db() as conn:
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM usuarios WHERE id = %s", (user_id,))
         user = cursor.fetchone()
-        
+
         if not user:
             return 0
-        
-        # Admin tiene acceso ilimitado
+
         if user['rol'] == 'admin':
             return 'Ilimitados'
-        
-        plan = PLANES.get(user['plan'], PLANES['gratuito'])
-        
-        # Si el plan es ilimitado
+
+        plan = PLANES.get(user['plan'], PLANES['lite'])
+
         if plan['diagnosticos_mes'] == 999999:
             return 'Ilimitados'
-        
-        # Obtener diagnósticos este mes
+
         cursor.execute("""
-            SELECT COUNT(*) as total FROM diagnosticos 
-            WHERE usuario_id = %s AND MONTH(fecha_analisis) = MONTH(CURRENT_DATE())
+            SELECT COUNT(*) as total FROM diagnosticos
+            WHERE usuario_id = %s AND EXTRACT(MONTH FROM fecha_analisis) = EXTRACT(MONTH FROM CURRENT_DATE)
         """, (user_id,))
         diagnosticos_mes = cursor.fetchone()['total']
-        
-        # Calcular restantes
+
         restantes = plan['diagnosticos_mes'] - diagnosticos_mes
-        
-        # Asegurarse de que no sea negativo
         return max(0, restantes)
 
 # ==================== DECORADORES ====================
@@ -251,36 +448,35 @@ def get_user_by_username(username):
         return cursor.fetchone()
 
 def verificar_limites(user_id, tipo):
-    """Verifica si el usuario puede realizar una acción"""
+    """Verifica si el usuario puede realizar una acción."""
     with get_db() as conn:
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM usuarios WHERE id = %s", (user_id,))
         user = cursor.fetchone()
-        
+
         if not user:
             return False, "Usuario no encontrado"
-        
-        # Admin sin límites
+
         if user['rol'] == 'admin':
             return True, "Acceso completo"
-        
-        plan = PLANES.get(user['plan'], PLANES['gratuito'])
-        
+
+        plan = PLANES.get(user['plan'], PLANES['lite'])
+
         if tipo == 'diagnostico':
             limite = plan['diagnosticos_mes']
-            usado = user['diagnosticos_este_mes']
+            usado = user.get('diagnosticos_este_mes', 0)
         elif tipo == 'archivo':
             limite = plan['archivos_mes']
-            usado = user['archivos_este_mes']
+            usado = user.get('archivos_este_mes', 0)
         else:
             return False, "Tipo no válido"
-        
-        if limite == float('inf'):
-            return True, f"Ilimitado"
-        
+
+        if limite in (None, float('inf'), 999999):
+            return True, "Ilimitado"
+
         if usado >= limite:
             return False, f"Límite alcanzado ({usado}/{limite})"
-        
+
         return True, f"Disponible ({usado}/{limite})"
 
 def incrementar_contador(user_id, tipo):
@@ -305,33 +501,59 @@ def incrementar_contador(user_id, tipo):
 
 # ==================== FUNCIONES DE ANÁLISIS ====================
 def analizar_riesgo(form_data):
-    """Analiza el riesgo basado en el formulario usando ML"""
+    """Analiza el riesgo basado en el formulario usando ML y un nivel más profundo de contexto empresarial."""
     PUNTUACION = {
         'tipo_riesgo': {'Tecnológico': 30, 'Financiero': 25, 'Operativo': 20, 'Reputacional': 25, 'Legal': 22},
         'impacto': {'Alto': 40, 'Medio': 25, 'Bajo': 10},
         'probabilidad': {'Alta': 30, 'Media': 20, 'Baja': 10}
     }
-    
-    # Puntuación tradicional
+
+    sector = form_data.get('sector', 'Otro')
+    tamano = form_data.get('tamano', 'Micro')
+    historial_incidentes = form_data.get('historial_incidentes', 'Nunca')
+    sensibilidad_datos = form_data.get('sensibilidad_datos', 'Media')
+    controles_seguridad = form_data.get('controles_seguridad', 'Medios')
+    copias_respaldo = form_data.get('copias_respaldo', 'Regulares')
+    mfa = form_data.get('mfa', 'Parcial')
+
+    sector_factor = {'Tecnología': 12, 'Financiero': 15, 'Salud': 18, 'Retail': 10, 'Manufactura': 9, 'Servicios': 8, 'Educación': 7, 'Gobierno': 14, 'Otro': 6}
+    tamano_factor = {'Micro': 5, 'Pequeña': 8, 'Mediana': 12, 'Grande': 15}
+    historial_factor = {'Nunca': 0, 'Única vez': 8, 'Varios': 18, 'Frecuentes': 28}
+    sensibilidad_factor = {'Baja': 4, 'Media': 9, 'Alta': 18}
+    controles_factor = {'Fuertes': -12, 'Medios': 6, 'Bajos': 20}
+    respaldo_factor = {'Diarias': -8, 'Regulares': 4, 'Inconsistentes': 14}
+    mfa_factor = {'Total': -10, 'Parcial': 5, 'Ninguna': 18}
+
     puntuacion = (
         PUNTUACION['tipo_riesgo'].get(form_data['tipo_riesgo'], 0) +
         PUNTUACION['impacto'].get(form_data['impacto'], 0) +
-        PUNTUACION['probabilidad'].get(form_data['probabilidad'], 0)
+        PUNTUACION['probabilidad'].get(form_data['probabilidad'], 0) +
+        sector_factor.get(sector, 6) +
+        tamano_factor.get(tamano, 5) +
+        historial_factor.get(historial_incidentes, 0) +
+        sensibilidad_factor.get(sensibilidad_datos, 9) +
+        controles_factor.get(controles_seguridad, 6) +
+        respaldo_factor.get(copias_respaldo, 4) +
+        mfa_factor.get(mfa, 5)
     )
-    
-    # Predicción ML
+
     nivel_ml, probabilidades = risk_predictor.predict_risk(
         form_data['tipo_riesgo'],
         form_data['impacto'],
-        form_data['probabilidad']
+        form_data['probabilidad'],
+        sector=sector,
+        tamano=tamano,
+        historial_incidentes=historial_incidentes,
+        sensibilidad_datos=sensibilidad_datos,
+        controles_seguridad=controles_seguridad,
+        copias_respaldo=copias_respaldo,
+        mfa=mfa
     )
-    
-    # Ajustar puntuación con ML (50% tradicional + 50% ML)
+
     nivel_map = {'Bajo': 25, 'Medio': 50, 'Alto': 75, 'Crítico': 95}
     puntuacion_ml = nivel_map[nivel_ml]
-    puntuacion_final = (puntuacion * 0.5) + (puntuacion_ml * 0.5)
-    
-    # Determinar nivel final
+    puntuacion_final = min(100, (puntuacion * 0.55) + (puntuacion_ml * 0.45))
+
     if puntuacion_final >= 75:
         nivel = 'Crítico'
         color = 'danger'
@@ -344,9 +566,19 @@ def analizar_riesgo(form_data):
     else:
         nivel = 'Bajo'
         color = 'success'
-    
+
     recomendaciones = generar_recomendaciones(nivel, form_data['tipo_riesgo'])
-    
+    ml_inputs = {
+        'sector': sector,
+        'tamano': tamano,
+        'historial_incidentes': historial_incidentes,
+        'sensibilidad_datos': sensibilidad_datos,
+        'controles_seguridad': controles_seguridad,
+        'copias_respaldo': copias_respaldo,
+        'mfa': mfa,
+        'empresa': form_data.get('empresa', '')
+    }
+
     return {
         'empresa': form_data['empresa'],
         'tipo_riesgo': form_data['tipo_riesgo'],
@@ -358,11 +590,17 @@ def analizar_riesgo(form_data):
         'recomendaciones': recomendaciones,
         'observaciones': form_data.get('observaciones', ''),
         'ml_prediction': nivel_ml,
+        'ml_inputs': ml_inputs,
         'ml_confidence': {
             'Bajo': round(probabilidades[0] * 100, 2),
             'Medio': round(probabilidades[1] * 100, 2),
             'Alto': round(probabilidades[2] * 100, 2),
             'Crítico': round(probabilidades[3] * 100, 2)
+        },
+        'desglose_puntuacion': {
+            'base': puntuacion,
+            'ml': puntuacion_ml,
+            'final': round(puntuacion_final, 2)
         }
     }
 
@@ -553,7 +791,7 @@ def register():
         confirm = request.form.get('confirm_password')
         email = request.form.get('email')
         empresa = request.form.get('empresa')
-        plan = request.form.get('plan', 'gratuito')
+        plan = request.form.get('plan', 'lite')
         
         if password != confirm:
             flash('Las contraseñas no coinciden', 'error')
@@ -601,9 +839,16 @@ def diagnostico():
             
             form_data = {
                 'empresa': request.form.get('empresa'),
+                'sector': request.form.get('sector'),
+                'tamano': request.form.get('tamano'),
                 'tipo_riesgo': request.form.get('tipo_riesgo'),
                 'impacto': request.form.get('impacto'),
                 'probabilidad': request.form.get('probabilidad'),
+                'historial_incidentes': request.form.get('historial_incidentes'),
+                'sensibilidad_datos': request.form.get('sensibilidad_datos'),
+                'controles_seguridad': request.form.get('controles_seguridad'),
+                'copias_respaldo': request.form.get('copias_respaldo'),
+                'mfa': request.form.get('mfa'),
                 'observaciones': request.form.get('observaciones', '')
             }
             
@@ -625,9 +870,16 @@ def diagnostico():
         
         form_data = {
             'empresa': request.form.get('empresa'),
+            'sector': request.form.get('sector'),
+            'tamano': request.form.get('tamano'),
             'tipo_riesgo': request.form.get('tipo_riesgo'),
             'impacto': request.form.get('impacto'),
             'probabilidad': request.form.get('probabilidad'),
+            'historial_incidentes': request.form.get('historial_incidentes'),
+            'sensibilidad_datos': request.form.get('sensibilidad_datos'),
+            'controles_seguridad': request.form.get('controles_seguridad'),
+            'copias_respaldo': request.form.get('copias_respaldo'),
+            'mfa': request.form.get('mfa'),
             'observaciones': request.form.get('observaciones', '')
         }
         
@@ -637,21 +889,21 @@ def diagnostico():
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-    INSERT INTO diagnosticos 
-    (usuario_id, empresa, tipo_riesgo, impacto, probabilidad, observaciones, puntuacion_final, nivel_riesgo)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-""", (session['user_id'], form_data['empresa'], form_data['tipo_riesgo'], 
-        form_data['impacto'], form_data['probabilidad'], form_data['observaciones'],
-        resultado['puntuacion_final'], resultado['nivel_riesgo']))
-            diagnostico_id = cursor.lastrowid
-            
-            # Guardar recomendaciones
+                INSERT INTO diagnosticos 
+                (usuario_id, empresa, tipo_riesgo, impacto, probabilidad, observaciones, puntuacion_final, nivel_riesgo)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, (session['user_id'], form_data['empresa'], form_data['tipo_riesgo'],
+                form_data['impacto'], form_data['probabilidad'], form_data['observaciones'],
+                resultado['puntuacion_final'], resultado['nivel_riesgo']))
+            diagnostico_id = cursor.fetchone()[0]
+
             for rec in resultado['recomendaciones']:
                 cursor.execute("""
                     INSERT INTO recomendaciones (diagnostico_id, titulo, prioridad)
                     VALUES (%s, %s, %s)
                 """, (diagnostico_id, rec['titulo'], rec['prioridad']))
-            
+
             conn.commit()
         
         incrementar_contador(session['user_id'], 'diagnostico')
@@ -687,10 +939,7 @@ def upload():
             file.save(filepath)
             
             try:
-                if filename.endswith('.csv'):
-                    df = pd.read_csv(filepath)
-                else:
-                    df = pd.read_excel(filepath)
+                df = _read_dataframe_from_file(filepath)
                 
                 analisis = analizar_archivo(df)
                 analisis['archivo_nombre'] = filename
@@ -1142,11 +1391,12 @@ def analizar_archivo(df):
                     })
 
     # ========== CLASIFICACIÓN DE RIESGO ==========
-
-    puntuacion_final = min(100, round(puntuacion, 2))
+    nivel_ml, probabilidades = risk_predictor.predict_file_risk(df)
+    nivel_score = {'Bajo': 20, 'Medio': 48, 'Alto': 75, 'Crítico': 95}[nivel_ml]
+    puntuacion_final = min(100, round(max(puntuacion, nivel_score * 0.82), 2))
 
     if puntuacion_final >= 85:
-        nivel_riesgo = 'Muy Alto'
+        nivel_riesgo = 'Crítico'
     elif puntuacion_final >= 60:
         nivel_riesgo = 'Alto'
     elif puntuacion_final >= 35:
@@ -1160,6 +1410,13 @@ def analizar_archivo(df):
         'puntuacion_riesgo': puntuacion_final,
         'nivel_riesgo': nivel_riesgo,
         'anomalias': anomalias,
+        'ml_prediction': nivel_ml,
+        'ml_confidence': {
+            'Bajo': round(probabilidades[0] * 100, 2),
+            'Medio': round(probabilidades[1] * 100, 2),
+            'Alto': round(probabilidades[2] * 100, 2),
+            'Crítico': round(probabilidades[3] * 100, 2)
+        },
         'metricas_avanzadas': {
             'columnas_monetarias': columnas_monetarias,
             'columnas_fecha': columnas_fecha,
@@ -1370,7 +1627,7 @@ def perfil():
             
             # Obtener estadísticas
             stats = get_user_stats(session['user_id'])
-            plan_info = PLANES.get(user['plan'], PLANES['gratuito'])
+            plan_info = PLANES.get(user['plan'], PLANES['lite'])
             restantes = calcular_diagnosticos_restantes(session['user_id'])
             
             # OBTENER ACTIVIDAD RECIENTE (solo 5 para el preview)
@@ -1541,11 +1798,11 @@ def admin_dashboard():
         
         # Diagnosticos por mes (últimos 6 meses)
         cursor.execute("""
-            SELECT DATE_FORMAT(fecha_analisis, '%Y-%m') as mes, 
-                   COUNT(*) as total 
-            FROM diagnosticos 
-            WHERE fecha_analisis >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-            GROUP BY mes 
+            SELECT TO_CHAR(fecha_analisis, 'YYYY-MM') as mes,
+                   COUNT(*) as total
+            FROM diagnosticos
+            WHERE fecha_analisis >= CURRENT_DATE - INTERVAL '6 months'
+            GROUP BY mes
             ORDER BY mes DESC
         """)
         diagnosticos_mes = cursor.fetchall()
@@ -1737,7 +1994,7 @@ def crear_usuario():
     email = request.form.get('email')
     empresa = request.form.get('empresa')
     rol = request.form.get('rol', 'pyme')
-    plan = request.form.get('plan', 'gratuito')
+    plan = request.form.get('plan', 'lite')
     
     # Validaciones
     if password != confirm_password:

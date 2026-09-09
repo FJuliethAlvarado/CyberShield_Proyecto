@@ -1,111 +1,289 @@
 {% extends 'base.html' %}
 
+{% block extra_css %}
+<style>
+    main.container {
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .landing-shell {
+        background: #f4f7fb;
+        color: #1c2434;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .landing-navbar {
+        background: rgba(10, 18, 35, 0.82);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        padding: 0.8rem 0;
+    }
+
+    .landing-navbar .navbar-brand {
+        font-size: 1.3rem;
+        letter-spacing: -0.03em;
+    }
+
+    .landing-navbar .nav-link {
+        color: rgba(255,255,255,0.8) !important;
+        font-weight: 500;
+        margin-right: 0.35rem;
+    }
+
+    .landing-navbar .nav-link:hover,
+    .landing-navbar .nav-link.active {
+        color: #ffffff !important;
+    }
+
+    .landing-hero {
+        position: relative;
+        background: linear-gradient(135deg, #111827 0%, #213a6b 38%, #5b41c3 100%);
+        color: #ffffff;
+        min-height: 540px;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    .landing-hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at top right, rgba(99,102,241,0.45), transparent 35%);
+    }
+
+    .landing-hero .container {
+        position: relative;
+        z-index: 1;
+    }
+
+    .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.16);
+        color: #e2e8f0;
+        padding: 0.55rem 0.9rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-weight: 700;
+    }
+
+    .landing-hero h1 {
+        font-size: clamp(2.5rem, 5vw, 4.2rem);
+        line-height: 1.08;
+        letter-spacing: -0.06em;
+        margin-top: 1.2rem;
+        margin-bottom: 1.2rem;
+    }
+
+    .landing-hero p {
+        font-size: 1.08rem;
+        max-width: 760px;
+        margin: 0 auto 2rem;
+        color: rgba(255,255,255,0.85);
+    }
+
+    .landing-hero .btn {
+        border-radius: 999px;
+        font-weight: 700;
+        padding: 0.9rem 1.8rem;
+        box-shadow: 0 18px 35px rgba(21, 28, 43, 0.18);
+    }
+
+    .landing-hero .btn-outline-light {
+        border-width: 1.5px;
+    }
+
+    .feature-card {
+        border: 1px solid rgba(148,163,184,0.18);
+        border-radius: 1.1rem;
+        background: rgba(255,255,255,0.75);
+        box-shadow: 0 14px 35px rgba(15, 23, 42, 0.06);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        height: 100%;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.1);
+    }
+
+    .feature-icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        font-size: 2rem;
+        background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(59,130,246,0.08));
+    }
+
+    .section-title {
+        font-size: clamp(2rem, 3vw, 3rem);
+        line-height: 1.15;
+        letter-spacing: -0.05em;
+        font-weight: 800;
+    }
+
+    .value-panel {
+        background: #ffffff;
+        border: 1px solid rgba(148,163,184,0.18);
+        border-radius: 1.4rem;
+        box-shadow: 0 16px 35px rgba(15, 23, 42, 0.06);
+    }
+
+    .cta-band {
+        background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+        color: #ffffff;
+        border-radius: 1.4rem;
+        box-shadow: 0 20px 40px rgba(37, 99, 235, 0.22);
+    }
+
+    .footer-landing {
+        background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+    }
+
+    @media (max-width: 991.98px) {
+        .landing-hero {
+            min-height: 460px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="text-center mb-5">
-    <i class="fas fa-shield-alt text-primary" style="font-size: 5rem;"></i>
-    <h1 class="mt-3">CyberShield PyME</h1>
-    <p class="lead text-muted">Sistema de Diagnóstico de Ciberseguridad para PyMEs Colombianas</p>
-</div>
-
-<!-- Badges de características -->
-<div class="row text-center mb-5">
-    <div class="col-md-4">
-        <span class="badge bg-warning text-dark p-3">
-            <i class="fas fa-check-circle"></i> Análisis Integral
-        </span>
+<div class="landing-shell">
+  <section class="landing-hero text-center">
+    <div class="container py-5">
+      <div class="eyebrow">
+        <i class="bi bi-shield-check"></i>
+        Seguridad financiera + ciberseguridad
+      </div>
+      <h1>CyberShield Pyme<br>tu aliado en finanzas y seguridad digital</h1>
+      <p>
+        <strong>CyberShield PyME</strong> es la solución integral para pequeñas y medianas empresas que buscan proteger sus finanzas, detectar riesgos y operar con mayor confianza en un solo diagnóstico inteligente.
+      </p>
+      <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+        <a href="/register" class="btn btn-light btn-lg">Comenzar ahora</a>
+        <a href="/quienes-somos" class="btn btn-outline-light btn-lg">Saber más</a>
+      </div>
     </div>
-    <div class="col-md-4">
-        <span class="badge bg-warning text-dark p-3">
-            <i class="fas fa-lock"></i> Datos Confidenciales
-        </span>
-    </div>
-    <div class="col-md-4">
-        <span class="badge bg-warning text-dark p-3">
-            <i class="fas fa-chart-line"></i> Reportes Detallados
-        </span>
-    </div>
-</div>
+  </section>
 
-<!-- Opciones principales -->
-<div class="row g-4">
-    <!-- Diagnóstico Manual -->
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-clipboard-list text-primary" style="font-size: 4rem;"></i>
-                <h3 class="mt-3">Diagnóstico Manual</h3>
-                <p class="text-muted">Evalúa los riesgos cibernéticos completando un formulario guiado</p>
-                
-                <ul class="list-unstyled text-start mb-4">
-                    <li class="mb-2"><i class="fas fa-check text-success"></i> Evaluación rápida (5-10 min)</li>
-                    <li class="mb-2"><i class="fas fa-check text-success"></i> Análisis de vulnerabilidades</li>
-                    <li class="mb-2"><i class="fas fa-check text-success"></i> Recomendaciones personalizadas</li>
-                    <li class="mb-2"><i class="fas fa-check text-success"></i> Estimación de impacto</li>
-                </ul>
-
-                {% if not session.user_id %}
-                <div class="alert alert-info">
-                    <small><i class="fas fa-gift"></i> <strong>Modo Invitado:</strong> 2 diagnósticos gratis sin registro</small>
-                </div>
-                {% endif %}
-
-                <a href="/diagnostico" class="btn btn-primary btn-lg w-100">
-                    <i class="fas fa-arrow-right"></i> Iniciar Diagnóstico
-                </a>
-            </div>
+  <section class="py-5 py-lg-6">
+    <div class="container">
+      <div class="text-center mb-5">
+        <h2 class="section-title mb-3">¿Por qué elegirnos?</h2>
+        <p class="text-muted lead mb-0">Todo lo que necesitas para proteger tu negocio, en un solo lugar.</p>
+      </div>
+      <div class="row g-4">
+        <div class="col-12 col-sm-6 col-lg-3">
+          <div class="feature-card p-4 text-center">
+            <div class="feature-icon text-primary"><i class="bi bi-lightning-charge-fill"></i></div>
+            <h5 class="fw-bold mb-3">Rápido</h5>
+            <p class="text-muted mb-0">Detecta anomalías contables y riesgos digitales con rapidez, sin retrasar tus operaciones.</p>
+          </div>
         </div>
-    </div>
-
-    <!-- Análisis de Archivos -->
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-file-upload text-success" style="font-size: 4rem;"></i>
-                <h3 class="mt-3">Análisis de Datos</h3>
-                <p class="text-muted">Sube tus archivos contables para un análisis automatizado</p>
-                
-                <ul class="list-unstyled text-start mb-4">
-                    <li class="mb-2"><i class="fas fa-check text-success"></i> Detección de anomalías</li>
-                    <li class="mb-2"><i class="fas fa-check text-success"></i> Análisis de patrones</li>
-                    <li class="mb-2"><i class="fas fa-check text-success"></i> Identificación de riesgos</li>
-                    <li class="mb-2"><i class="fas fa-check text-success"></i> Compatible CSV/Excel</li>
-                </ul>
-
-                {% if not session.user_id %}
-                <div class="alert alert-warning">
-                    <small><i class="fas fa-lock"></i> <strong>Requiere registro</strong></small>
-                </div>
-                <a href="/register" class="btn btn-success btn-lg w-100">
-                    <i class="fas fa-user-plus"></i> Registrarse Gratis
-                </a>
-                {% else %}
-                <a href="/upload" class="btn btn-success btn-lg w-100">
-                    <i class="fas fa-cloud-upload-alt"></i> Subir Archivo
-                </a>
-                {% endif %}
-            </div>
+        <div class="col-12 col-sm-6 col-lg-3">
+          <div class="feature-card p-4 text-center">
+            <div class="feature-icon text-success"><i class="bi bi-shield-fill-check"></i></div>
+            <h5 class="fw-bold mb-3">Seguro</h5>
+            <p class="text-muted mb-0">Protección para datos, finanzas y procesos clave, reforzando la confianza de tu empresa.</p>
+          </div>
         </div>
-    </div>
-</div>
-
-<!-- Banner informativo -->
-<div class="alert alert-info mt-5 text-center">
-    <h5><i class="fas fa-info-circle"></i> ¿Por qué es importante?</h5>
-    <p class="mb-0">El 60% de las PyMEs que sufren un ciberataque cierran en los siguientes 6 meses. Un diagnóstico preventivo puede salvar tu negocio.</p>
-</div>
-
-<!-- Call to action para planes -->
-{% if session.user_id and session.plan == 'gratuito' %}
-<div class="alert alert-success mt-4">
-    <div class="row align-items-center">
-        <div class="col-md-8">
-            <h5><i class="fas fa-star"></i> Mejora tu Plan</h5>
-            <p class="mb-0">Obtén diagnósticos ilimitados y reportes PDF descargables</p>
+        <div class="col-12 col-sm-6 col-lg-3">
+          <div class="feature-card p-4 text-center">
+            <div class="feature-icon text-warning"><i class="bi bi-phone-fill"></i></div>
+            <h5 class="fw-bold mb-3">Responsive</h5>
+            <p class="text-muted mb-0">Una plataforma adaptada a cualquier dispositivo para que gestiones tu negocio desde cualquier lugar.</p>
+          </div>
         </div>
-        <div class="col-md-4 text-end">
-            <a href="/planes" class="btn btn-success">Ver Planes</a>
+        <div class="col-12 col-sm-6 col-lg-3">
+          <div class="feature-card p-4 text-center">
+            <div class="feature-icon text-info"><i class="bi bi-headset"></i></div>
+            <h5 class="fw-bold mb-3">Soporte 24/7</h5>
+            <p class="text-muted mb-0">Un equipo especializado siempre listo para acompañarte en cada etapa de implementación.</p>
+          </div>
         </div>
+      </div>
     </div>
+  </section>
+
+  <section class="py-5 bg-white">
+    <div class="container">
+      <div class="row align-items-center g-5">
+        <div class="col-12 col-lg-6">
+          <div class="pe-lg-4">
+            <h2 class="section-title mb-3">Impulsa tu productividad con seguridad</h2>
+            <p class="lead text-muted mb-4">
+              Gestiona tus finanzas, fortalece tus operaciones y obtén reportes claros del estado de tu empresa sin esfuerzo.
+            </p>
+            <p class="text-muted mb-4">
+              Tu negocio gana productividad, control financiero y protección digital en un solo lugar. Es como combinar un contador inteligente y un guardián digital para que te concentres en crecer.
+            </p>
+            <a href="/quienes-somos" class="btn btn-outline-primary btn-lg px-4">Saber más</a>
+          </div>
+        </div>
+        <div class="col-12 col-lg-6">
+          <div class="value-panel p-3 p-md-4">
+            <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80" class="img-fluid rounded-4 w-100" alt="Equipo trabajando" style="height: 420px; object-fit: cover;">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="container py-5">
+    <div class="cta-band p-4 p-lg-5 text-center">
+      <h2 class="fw-bold mb-3">¿Listo para comenzar?</h2>
+      <p class="lead mb-4 text-white-50">Únete a empresas que ya confían en nuestra tecnología para proteger su crecimiento.</p>
+      <a href="/register" class="btn btn-light btn-lg px-5">Regístrate gratis</a>
+    </div>
+  </section>
+
+  <footer class="footer-landing text-white py-5">
+    <div class="container">
+      <div class="row g-4 align-items-start">
+        <div class="col-md-4">
+          <h5 class="fw-bold mb-3">CyberShield Pyme</h5>
+          <p class="text-white-50 mb-0">Con CyberShield PyME, tu negocio gana confianza, sostenibilidad y protección frente a pérdidas financieras y amenazas digitales.</p>
+        </div>
+        <div class="col-md-2">
+          <h6 class="fw-semibold mb-3">Empresa</h6>
+          <ul class="list-unstyled text-white-50 mb-0">
+            <li class="mb-2"><a href="/quienes-somos" class="text-white-50 text-decoration-none">Nosotros</a></li>
+            <li class="mb-2"><a href="/planes" class="text-white-50 text-decoration-none">Planes</a></li>
+            <li><a href="/login" class="text-white-50 text-decoration-none">Contacto</a></li>
+          </ul>
+        </div>
+        <div class="col-md-2">
+          <h6 class="fw-semibold mb-3">Soporte</h6>
+          <ul class="list-unstyled text-white-50 mb-0">
+            <li class="mb-2"><a href="#" class="text-white-50 text-decoration-none">Ayuda</a></li>
+            <li class="mb-2"><a href="#" class="text-white-50 text-decoration-none">FAQ</a></li>
+            <li><a href="/register" class="text-white-50 text-decoration-none">Registro</a></li>
+          </ul>
+        </div>
+        <div class="col-md-4 text-md-end">
+          <h6 class="fw-semibold mb-3">Síguenos</h6>
+          <div class="d-flex gap-2 justify-content-md-end mb-3">
+            <a href="#" class="btn btn-outline-light btn-sm rounded-circle"><i class="bi bi-twitter-x"></i></a>
+            <a href="#" class="btn btn-outline-light btn-sm rounded-circle"><i class="bi bi-instagram"></i></a>
+            <a href="#" class="btn btn-outline-light btn-sm rounded-circle"><i class="bi bi-linkedin"></i></a>
+          </div>
+        </div>
+      </div>
+      <hr class="border-secondary mt-4 mb-3">
+      <p class="text-white-50 text-center mb-0 small">© 2026 CyberShield Pyme. Todos los derechos reservados.</p>
+    </div>
+  </footer>
 </div>
-{% endif %}
 {% endblock %}

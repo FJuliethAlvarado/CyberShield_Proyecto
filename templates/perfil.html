@@ -110,7 +110,7 @@
                     <div class="card-body">
                         <h5>{{ plan_info.nombre }}</h5>
                         <p class="text-muted mb-2">
-                            {% if user.plan == 'gratuito' %}$0 / mes{% elif user.plan == 'premium' %}$49.900 / mes{% elif user.plan == 'empresarial' %}$99.900 / mes{% endif %}
+                            {% if user.plan == 'lite' %}$29.900 / mes{% elif user.plan == 'premium' %}$49.900 / mes{% endif %}
                         </p>
                         <ul class="list-unstyled mb-3">
                             <li><i class="fas fa-check text-success"></i> 
@@ -121,7 +121,7 @@
                             </li>
                             <li><i class="fas fa-{{ 'check' if plan_info.reportes_pdf else 'times' }} text-{{ 'success' if plan_info.reportes_pdf else 'danger' }}"></i> Reportes PDF</li>
                         </ul>
-                        {% if user.plan == 'gratuito' %}
+                        {% if user.plan == 'lite' %}
                         <a href="/planes" class="btn btn-success w-100">Mejorar Plan</a>
                         {% else %}
                         <button class="btn btn-outline-secondary w-100" disabled>Plan Actual</button>
@@ -143,7 +143,7 @@
                 </a>
             </div>
             <div class="col-md-3">
-                {% if user.plan != 'gratuito' %}
+                {% if user.plan == 'lite' or user.plan == 'premium' %}
                 <a href="/upload" class="btn btn-success w-100 h-100 d-flex flex-column align-items-center justify-content-center">
                     <i class="fas fa-file-excel fa-2x mb-2"></i>
                     <span class="fw-bold">Analizar Archivo</span>

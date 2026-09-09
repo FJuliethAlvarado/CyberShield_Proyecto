@@ -99,7 +99,7 @@
                                 {% for plan in usuarios_plan %}
                                 <tr>
                                     <td>
-                                        <span class="badge bg-{{ 'success' if plan.plan == 'premium' else 'secondary' if plan.plan == 'gratuito' else 'primary' }}">
+                                        <span class="badge bg-{{ 'success' if plan.plan == 'premium' else 'warning' if plan.plan == 'lite' else 'primary' }}">
                                             {{ plan.plan|title }}
                                         </span>
                                     </td>
