@@ -17,7 +17,7 @@
   --security-orange-dark: #e8590c;
   
 /* Colores de fondo sutiles */
---bg-main: #f0f4f8;
+--bg-main:  ;
 --bg-card: #f8fafc;
 --bg-section: #e1e8f0;
 --bg-footer: #1e293b;
@@ -62,6 +62,27 @@ body {
         0 0 6px rgba(253, 126, 20, 0.3);
     position: relative;
     animation: matrixClean 4s infinite;
+}
+
+.landing-navbar .navbar-brand {
+  background: none;
+  text-shadow: none;
+  animation: none;
+}
+
+.landing-navbar .cybershield-logo {
+  display: block;
+  height: 3.2rem;
+  object-fit: contain;
+  width: auto;
+}
+
+.landing-navbar .brand-lock {
+  color: #00a63c;
+}
+
+.landing-navbar .navbar-brand::after {
+  display: none;
 }
 
 @keyframes matrixClean {
