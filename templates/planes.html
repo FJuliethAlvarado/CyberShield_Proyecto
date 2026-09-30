@@ -1,84 +1,253 @@
-<!-- planes.html -->
 {% extends 'base.html' %}
 
+{% block extra_css %}
+<style>
+    .plans-page {
+        --plans-green: #078b3b;
+        --plans-green-dark: #075d31;
+        --plans-ink: #17231c;
+        --plans-muted: #65736a;
+        --plans-line: #dce7df;
+        margin: 0 auto;
+        max-width: 940px;
+        padding: clamp(0.25rem, 2vw, 1.25rem) 0 1rem;
+    }
+    .plans-heading { margin: 0 auto 1.75rem; max-width: 620px; }
+    .plans-kicker {
+        color: var(--plans-green);
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+    .plans-heading h1 {
+        color: var(--plans-ink);
+        font-size: clamp(1.8rem, 4vw, 2.65rem);
+        font-weight: 800;
+        letter-spacing: 0;
+        margin: 0.35rem 0 0.55rem;
+    }
+    .plans-heading p { color: var(--plans-muted); margin: 0; }
+    .plans-tabs {
+        border-bottom: 1px solid var(--plans-line);
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        margin: 0 auto;
+        max-width: 460px;
+        padding: 0 0.5rem;
+    }
+    .plans-tabs .nav-link {
+        border: 0;
+        border-bottom: 3px solid transparent;
+        border-radius: 0;
+        color: var(--plans-muted);
+        font-size: 0.98rem;
+        font-weight: 700;
+        min-height: 48px;
+        padding: 0.65rem 1.5rem;
+    }
+    .plans-tabs .nav-link:hover { color: var(--plans-green-dark); }
+    .plans-tabs .nav-link.active {
+        background: transparent;
+        border-bottom-color: var(--plans-green);
+        color: var(--plans-green-dark);
+    }
+    .plans-panel { padding-top: 1.35rem; }
+    .plan-card {
+        background: #fff;
+        border: 1px solid var(--plans-line);
+        border-radius: 8px;
+        box-shadow: 0 12px 32px rgba(19, 50, 30, 0.08);
+        margin: 0 auto;
+        max-width: 900px;
+        overflow: hidden;
+    }
+    .plan-card .row { min-height: 340px; }
+    .plan-image-wrap { min-height: 340px; overflow: hidden; position: relative; }
+    .plan-image-wrap::after {
+        background: linear-gradient(180deg, transparent 58%, rgba(9, 39, 22, 0.34));
+        content: '';
+        inset: 0;
+        pointer-events: none;
+        position: absolute;
+    }
+    .plan-image {
+        display: block;
+        height: 100%;
+        inset: 0;
+        object-fit: cover;
+        position: absolute;
+        width: 100%;
+    }
+    .plan-content { padding: clamp(1.4rem, 4vw, 2.5rem); }
+    .plan-label {
+        color: var(--plans-green);
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+    .plan-title-row { align-items: flex-start; display: flex; gap: 1rem; justify-content: space-between; }
+    .plan-title-row h2 { color: var(--plans-ink); font-size: 1.65rem; font-weight: 800; margin: 0.25rem 0 0; }
+    .plan-price { color: var(--plans-ink); font-size: 2rem; font-weight: 800; line-height: 1.1; white-space: nowrap; }
+    .plan-price small { color: var(--plans-muted); display: block; font-size: 0.8rem; font-weight: 500; margin-top: 0.35rem; text-align: right; }
+    .plan-summary { color: var(--plans-muted); margin: 0.75rem 0 1.25rem; }
+    .plan-features { border-top: 1px solid #edf2ee; list-style: none; margin: 0; padding: 0.6rem 0 0; }
+    .plan-features li { align-items: flex-start; color: #35443a; display: flex; gap: 0.65rem; line-height: 1.45; padding: 0.42rem 0; }
+    .plan-features .bi { color: var(--plans-green); flex: 0 0 auto; font-size: 1rem; margin-top: 0.1rem; }
+    .plan-features .not-included { color: #829087; }
+    .plan-features .not-included .bi { color: #849088; }
+    .plan-actions { margin-top: 1.35rem; }
+    .plan-actions form { margin: 0; }
+    .plan-button {
+        align-items: center;
+        background: var(--plans-green);
+        border: 1px solid var(--plans-green);
+        border-radius: 5px;
+        color: #fff;
+        display: inline-flex;
+        font-weight: 700;
+        justify-content: center;
+        min-height: 46px;
+        padding: 0.7rem 1.25rem;
+        text-decoration: none;
+        transition: background-color 160ms ease, border-color 160ms ease;
+        width: 100%;
+    }
+    .plan-button:hover { background: var(--plans-green-dark); border-color: var(--plans-green-dark); color: #fff; }
+    .plan-button:focus-visible { outline: 3px solid rgba(7, 139, 59, 0.3); outline-offset: 2px; }
+    .plan-button.current { background: #edf6ef; border-color: #c8dfce; color: var(--plans-green-dark); cursor: default; }
+    .plan-button.premium { background: var(--plans-green-dark); border-color: var(--plans-green-dark); }
+    .plan-button.premium:hover { background: #064a27; border-color: #064a27; }
+    .plan-popular {
+        background: #e8f4eb;
+        border-radius: 3px;
+        color: var(--plans-green-dark);
+        font-size: 0.73rem;
+        font-weight: 800;
+        padding: 0.35rem 0.55rem;
+        white-space: nowrap;
+    }
+    .plans-footnote {
+        border-top: 1px solid var(--plans-line);
+        color: var(--plans-muted);
+        font-size: 0.88rem;
+        margin: 1.4rem auto 0;
+        max-width: 900px;
+        padding-top: 1rem;
+        text-align: center;
+    }
+    @media (max-width: 767.98px) {
+        .plans-page { padding-top: 0; }
+        .plans-heading { margin-bottom: 1.1rem; }
+        .plans-tabs { justify-content: stretch; }
+        .plans-tabs .nav-item { flex: 1; text-align: center; }
+        .plans-tabs .nav-link { padding-left: 0.5rem; padding-right: 0.5rem; width: 100%; }
+        .plans-panel { padding-top: 1rem; }
+        .plan-card .row { min-height: 0; }
+        .plan-image-wrap { min-height: 190px; }
+        .plan-content { padding: 1.25rem; }
+        .plan-price { font-size: 1.65rem; }
+        .plan-title-row h2 { font-size: 1.4rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .plan-button { transition: none; }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="text-center mb-5">
-    <h1>Planes de Suscripción</h1>
-    <p class="text-muted">Acceso profesional sin versión gratuita. Elige el plan que mejor te sirva.</p>
-</div>
+<section class="plans-page" aria-labelledby="plans-title">
+    <header class="plans-heading text-center">
+        <span class="plans-kicker">CyberShield PyME</span>
+        <h1 id="plans-title">Planes de suscripción</h1>
+        <p>Protección y análisis para cada etapa de tu negocio.</p>
+    </header>
 
-<div class="row justify-content-center">
-    <div class="col-md-5 mb-4">
-        <div class="card h-100 border-secondary">
-            <div class="card-header bg-light text-center py-4">
-                <h4 class="text-secondary">Lite</h4>
-                <h2 class="text-secondary">$29.900</h2>
-                <small class="text-muted">/mes</small>
-            </div>
-            <div class="card-body">
-                <ul class="list-unstyled">
-                    <li class="mb-2"><i class="fas fa-check text-success"></i> 10 diagnósticos mensuales</li>
-                    <li class="mb-2"><i class="fas fa-check text-success"></i> 5 archivos de análisis/mes</li>
-                    <li class="mb-2"><i class="fas fa-check text-success"></i> Reportes PDF</li>
-                    <li class="mb-2"><i class="fas fa-check text-success"></i> Recomendaciones básicas</li>
-                    <li class="mb-2"><i class="fas fa-times text-danger"></i> Alcance completo de alertas avanzadas</li>
-                </ul>
-            </div>
-            <div class="card-footer bg-transparent">
-                {% if session.user_id and session.plan == 'lite' %}
-                <button class="btn btn-outline-secondary w-100" disabled>Plan Actual</button>
-                {% else %}
-                <form action="/upgrade_plan" method="POST" class="d-inline w-100">
-                    <input type="hidden" name="plan" value="lite">
-                    <button type="submit" class="btn btn-outline-secondary w-100">Seleccionar</button>
-                </form>
-                {% endif %}
-            </div>
+    <ul class="nav plans-tabs" id="plans-tab-list" role="tablist" aria-label="Selecciona un plan">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="lite-tab" data-bs-toggle="tab" data-bs-target="#lite-panel" type="button" role="tab" aria-controls="lite-panel" aria-selected="true">Lite</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="premium-tab" data-bs-toggle="tab" data-bs-target="#premium-panel" type="button" role="tab" aria-controls="premium-panel" aria-selected="false">Premium</button>
+        </li>
+    </ul>
+
+    <div class="tab-content plans-panel">
+        <div class="tab-pane fade show active" id="lite-panel" role="tabpanel" aria-labelledby="lite-tab" tabindex="0">
+            <article class="plan-card">
+                <div class="row g-0">
+                    <div class="col-md-4 plan-image-wrap">
+                        <img class="plan-image" src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=700&amp;h=900&amp;fit=crop" alt="Profesional trabajando con su computador" loading="lazy">
+                    </div>
+                    <div class="col-md-8">
+                        <div class="plan-content">
+                            <div class="plan-title-row">
+                                <div><span class="plan-label">Esencial</span><h2>Plan Lite</h2></div>
+                                <div class="plan-price">$29.900<small>por mes</small></div>
+                            </div>
+                            <p class="plan-summary">Herramientas esenciales para mantener tus riesgos bajo control.</p>
+                            <ul class="plan-features">
+                                <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>10 diagnósticos mensuales</span></li>
+                                <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>5 análisis de archivos al mes</span></li>
+                                <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>Reportes PDF y recomendaciones básicas</span></li>
+                                <li class="not-included"><i class="bi bi-dash-circle" aria-hidden="true"></i><span>Alertas avanzadas completas</span></li>
+                            </ul>
+                            <div class="plan-actions">
+                                {% if session.user_id and session.plan == 'lite' %}
+                                <button class="plan-button current" type="button" disabled><i class="bi bi-check2 me-2" aria-hidden="true"></i>Plan actual</button>
+                                {% else %}
+                                <form action="{{ url_for('upgrade_plan') }}" method="POST">
+                                    <input type="hidden" name="plan" value="lite">
+                                    <button class="plan-button" type="submit">Seleccionar Lite</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <div class="tab-pane fade" id="premium-panel" role="tabpanel" aria-labelledby="premium-tab" tabindex="0">
+            <article class="plan-card">
+                <div class="row g-0">
+                    <div class="col-md-4 plan-image-wrap">
+                        <img class="plan-image" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=700&amp;h=900&amp;fit=crop" alt="Equipo colaborando en un proyecto" loading="lazy">
+                    </div>
+                    <div class="col-md-8">
+                        <div class="plan-content">
+                            <div class="plan-title-row">
+                                <div><span class="plan-label">Protección completa</span><h2>Plan Premium</h2></div>
+                                <div class="plan-popular"><i class="bi bi-star-fill me-1" aria-hidden="true"></i>Recomendado</div>
+                            </div>
+                            <div class="plan-price mt-2">$49.900<small>por mes</small></div>
+                            <p class="plan-summary">Más capacidad y análisis avanzado para equipos en crecimiento.</p>
+                            <ul class="plan-features">
+                                <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>Diagnósticos ilimitados</span></li>
+                                <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>50 análisis de archivos al mes</span></li>
+                                <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>Reportes avanzados en PDF</span></li>
+                                <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>Modelado de riesgo con ML avanzado</span></li>
+                                <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>Soporte prioritario</span></li>
+                            </ul>
+                            <div class="plan-actions">
+                                {% if session.user_id and session.plan == 'premium' %}
+                                <button class="plan-button current" type="button" disabled><i class="bi bi-check2 me-2" aria-hidden="true"></i>Plan actual</button>
+                                {% else %}
+                                <form action="{{ url_for('upgrade_plan') }}" method="POST">
+                                    <input type="hidden" name="plan" value="premium">
+                                    <button class="plan-button premium" type="submit">Seleccionar Premium</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </article>
         </div>
     </div>
 
-    <div class="col-md-5 mb-4">
-        <div class="card h-100 border-primary shadow-sm">
-            <div class="card-header bg-primary text-white text-center py-4">
-                <span class="badge bg-warning float-end">Más Popular</span>
-                <h4>Premium</h4>
-                <h2>$49.900</h2>
-                <small>/mes</small>
-            </div>
-            <div class="card-body">
-                <ul class="list-unstyled">
-                    <li class="mb-2"><i class="fas fa-check text-success"></i> Diagnósticos ilimitados</li>
-                    <li class="mb-2"><i class="fas fa-check text-success"></i> 50 archivos/mes</li>
-                    <li class="mb-2"><i class="fas fa-check text-success"></i> Reportes avanzados y PDF</li>
-                    <li class="mb-2"><i class="fas fa-check text-success"></i> Modelado de riesgo con ML avanzado</li>
-                    <li class="mb-2"><i class="fas fa-check text-success"></i> Soporte prioritario 24/7</li>
-                </ul>
-            </div>
-            <div class="card-footer bg-transparent">
-                {% if session.user_id and session.plan == 'premium' %}
-                <button class="btn btn-primary w-100" disabled>Plan Actual</button>
-                {% else %}
-                <form action="/upgrade_plan" method="POST" class="d-inline w-100">
-                    <input type="hidden" name="plan" value="premium">
-                    <button type="submit" class="btn btn-primary w-100">Seleccionar</button>
-                </form>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mt-5">
-    <div class="col-md-8 mx-auto">
-        <div class="alert alert-info">
-            <h5><i class="fas fa-info-circle"></i> Información importante</h5>
-            <ul class="mb-0">
-                <li>No hay versión gratuita ni pruebas ilimitadas.</li>
-                <li>Los planes se facturan mensualmente y se reinician cada mes calendario.</li>
-                <li>Puedes cambiar de plan en cualquier momento.</li>
-                <li>El plan Premium incluye el análisis más completo con inteligencia artificial.</li>
-            </ul>
-        </div>
-    </div>
-</div>
+    <p class="plans-footnote"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>Facturación mensual. Puedes cambiar de plan en cualquier momento.</p>
+</section>
 {% endblock %}
