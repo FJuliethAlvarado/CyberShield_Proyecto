@@ -1,0 +1,31 @@
+Fecha,Comprobante,Cuenta,Descripcion,Debito,Credito,Importe,Estado
+2026-09-01,ASI-201,1105 Caja,Venta diaria,100000,0,100000,Registrado
+2026-09-01,ASI-201,4135 Ventas,Venta diaria,0,100000,100000,Registrado
+2026-09-02,ASI-202,5135 Gastos,Compra de insumos,95000,0,95000,Registrado
+2026-09-02,ASI-202,1105 Caja,Compra de insumos,0,95000,95000,Registrado
+2026-09-03,ASI-203,1110 Bancos,Pago de servicio,105000,0,105000,Registrado
+2026-09-03,ASI-203,5135 Gastos,Pago de servicio,0,105000,105000,Registrado
+2026-09-04,ASI-204,1305 Clientes,Venta a credito,98000,0,98000,Registrado
+2026-09-04,ASI-204,4135 Ventas,Venta a credito,0,98000,98000,Registrado
+2026-09-05,ASI-205,1520 Equipo,Compra menor,102000,0,102000,Registrado
+2026-09-05,ASI-205,1110 Bancos,Compra menor,0,102000,102000,Registrado
+2026-09-08,ASI-206,1105 Caja,Recaudo de cliente,97000,0,97000,Registrado
+2026-09-08,ASI-206,1305 Clientes,Recaudo de cliente,0,97000,97000,Registrado
+2026-09-09,ASI-207,5135 Gastos,Pago de transporte,101000,0,101000,Registrado
+2026-09-09,ASI-207,1105 Caja,Pago de transporte,0,101000,101000,Registrado
+2026-09-10,ASI-208,1110 Bancos,Ingreso por servicio,99000,0,99000,Registrado
+2026-09-10,ASI-208,4140 Servicios,Ingreso por servicio,0,99000,99000,Registrado
+2026-09-11,ASI-209,5135 Gastos,Pago de internet,103000,0,103000,Registrado
+2026-09-11,ASI-209,1110 Bancos,Pago de internet,0,103000,103000,Registrado
+2026-09-12,ASI-210,1105 Caja,Venta de contado,100000,0,100000,Registrado
+2026-09-12,ASI-210,4135 Ventas,Venta de contado,0,100000,100000,Registrado
+2026-09-15,ASI-211,1110 Bancos,Ingreso extraordinario,2500000,0,2500000,Revisar
+2026-09-15,ASI-211,4140 Servicios,Ingreso extraordinario,0,2500000,2500000,Revisar
+2026-09-16,ASI-212,5135 Gastos,Registro sin soporte,0,0,0,Revisar
+2026-09-16,ASI-212,1105 Caja,Registro sin soporte,0,0,0,Revisar
+2026-09-16,ASI-212,5135 Gastos,Registro sin soporte,0,0,0,Revisar
+2026-09-16,ASI-212,1105 Caja,Registro sin soporte,0,0,0,Revisar
+2026-09-17,ASI-213,5135 Gastos,Campo de importe faltante,,0,,Revisar
+2026-09-17,ASI-213,1105 Caja,Campo de importe faltante,0,,,
+2026-09-18,ASI-214,1110 Bancos,Movimiento nocturno,125000,0,125000,Revisar
+2026-09-18,ASI-214,5135 Gastos,Movimiento nocturno,0,125000,125000,Revisar

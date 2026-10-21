@@ -129,100 +129,109 @@
                         <div class="step-header mb-4">
                             <span class="step-number">2</span>
                             <h4 class="step-title">
-                                <i class="fas fa-exclamation-triangle me-2"></i>Evaluación de Riesgo
+                                <i class="fas fa-exclamation-triangle me-2"></i>Contexto y controles de seguridad
                             </h4>
                         </div>
 
-                        <div class="mb-4">
-                            <label for="tipo_riesgo" class="form-label fw-bold">
-                                Tipo de riesgo principal <span class="text-danger">*</span>
-                            </label>
-                            <select id="tipo_riesgo" name="tipo_riesgo" class="form-select form-select-lg" required>
-                                <option value="">-- Seleccione el riesgo más crítico --</option>
-                                <option value="Tecnológico" data-icon="fa-network-wired">Tecnológico (Ransomware, malware, ataques)</option>
-                                <option value="Financiero" data-icon="fa-money-bill-wave">Financiero (Fraude, robo de datos bancarios)</option>
-                                <option value="Operativo" data-icon="fa-cogs">Operativo (Interrupción de servicios)</option>
-                                <option value="Reputacional" data-icon="fa-star">Reputacional (Fuga de datos de clientes)</option>
-                                <option value="Legal" data-icon="fa-gavel">Legal (Incumplimiento normativo)</option>
-                            </select>
+                        <div class="alert alert-info">
+                            Responda según lo que conoce de su empresa. Si no tiene certeza, elija “No sé”; esa respuesta no se contará como un control confirmado.
                         </div>
-
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label for="impacto" class="form-label fw-bold">
-                                    Nivel de impacto <span class="text-danger">*</span>
-                                </label>
-                                <select id="impacto" name="impacto" class="form-select" required>
-                                    <option value="">-- Seleccione impacto --</option>
-                                    <option value="Alto" data-color="danger">Alto - Parálisis del negocio</option>
-                                    <option value="Medio" data-color="warning">Medio - Afectación temporal</option>
-                                    <option value="Bajo" data-color="success">Bajo - Impacto menor</option>
+                                <label for="dependencia_sistemas" class="form-label fw-bold">¿Cuánto depende la operación de sistemas, internet o servicios digitales? *</label>
+                                <select id="dependencia_sistemas" name="dependencia_sistemas" class="form-select" required>
+                                    <option value="">Seleccione...</option><option value="baja">Poco</option><option value="parcial">Parcialmente</option><option value="alta">Mucho</option><option value="no_se">No sé</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label for="probabilidad" class="form-label fw-bold">
-                                    Probabilidad <span class="text-danger">*</span>
-                                </label>
-                                <select id="probabilidad" name="probabilidad" class="form-select" required>
-                                    <option value="">-- Seleccione probabilidad --</option>
-                                    <option value="Alta" data-color="danger">Alta - Muy probable</option>
-                                    <option value="Media" data-color="warning">Media - Puede ocurrir</option>
-                                    <option value="Baja" data-color="success">Baja - Poco probable</option>
+                                <label for="tiempo_recuperacion" class="form-label fw-bold">Si el sistema principal deja de funcionar, ¿cuánto podría operar? *</label>
+                                <select id="tiempo_recuperacion" name="tiempo_recuperacion" class="form-select" required>
+                                    <option value="">Seleccione...</option><option value="mas_3_dias">Más de 3 días</option><option value="1_3_dias">1 a 3 días</option><option value="menos_1_dia">Menos de 1 día</option><option value="no_puede_operar">No podría operar</option><option value="no_se">No sé</option>
                                 </select>
                             </div>
-                        </div>
-
-                        <div class="mt-4 p-4 rounded-4 bg-light border border-1">
-                            <h5 class="fw-bold mb-3">
-                                <i class="fas fa-depth-chart me-2 text-primary"></i>Profundización del análisis ML
-                            </h5>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="historial_incidentes" class="form-label fw-bold">Historial de incidentes</label>
-                                    <select id="historial_incidentes" name="historial_incidentes" class="form-select" required>
-                                        <option value="">-- Seleccione --</option>
-                                        <option value="Nunca">Nunca</option>
-                                        <option value="Única vez">Única vez</option>
-                                        <option value="Varios">Varios</option>
-                                        <option value="Frecuentes">Frecuentes</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="sensibilidad_datos" class="form-label fw-bold">Sensibilidad de los datos</label>
-                                    <select id="sensibilidad_datos" name="sensibilidad_datos" class="form-select" required>
-                                        <option value="">-- Seleccione --</option>
-                                        <option value="Baja">Baja</option>
-                                        <option value="Media">Media</option>
-                                        <option value="Alta">Alta</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="controles_seguridad" class="form-label fw-bold">Fortaleza de controles actuales</label>
-                                    <select id="controles_seguridad" name="controles_seguridad" class="form-select" required>
-                                        <option value="">-- Seleccione --</option>
-                                        <option value="Fuertes">Fuertes</option>
-                                        <option value="Medios">Medios</option>
-                                        <option value="Bajos">Bajos</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="copias_respaldo" class="form-label fw-bold">Frecuencia de respaldos</label>
-                                    <select id="copias_respaldo" name="copias_respaldo" class="form-select" required>
-                                        <option value="">-- Seleccione --</option>
-                                        <option value="Diarias">Diarias</option>
-                                        <option value="Regulares">Regulares</option>
-                                        <option value="Inconsistentes">Inconsistentes</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="mfa" class="form-label fw-bold">Autenticación multifactor</label>
-                                    <select id="mfa" name="mfa" class="form-select" required>
-                                        <option value="">-- Seleccione --</option>
-                                        <option value="Total">Total / generalizado</option>
-                                        <option value="Parcial">Parcial</option>
-                                        <option value="Ninguna">Ninguna</option>
-                                    </select>
-                                </div>
+                            <div class="col-md-6">
+                                <label for="proveedores" class="form-label fw-bold">¿Depende de proveedores externos para sistemas o datos importantes? *</label>
+                                <select id="proveedores" name="proveedores" class="form-select" required>
+                                    <option value="">Seleccione...</option><option value="ninguno">No</option><option value="algunos">Sí, algunos</option><option value="varios">Sí, varios</option><option value="no_se">No sé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="tipo_datos" class="form-label fw-bold">¿Qué tipo de información más sensible maneja? *</label>
+                                <select id="tipo_datos" name="tipo_datos" class="form-select" required>
+                                    <option value="">Seleccione...</option><option value="ninguno">Ninguna de las siguientes</option><option value="contacto">Datos personales de contacto</option><option value="financiera">Información financiera o de pagos</option><option value="sensible">Datos personales sensibles</option><option value="confidencial">Información confidencial del negocio</option><option value="no_se">No sé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="acceso_remoto" class="form-label fw-bold">¿Se accede a sistemas de la empresa desde fuera de sus instalaciones? *</label>
+                                <select id="acceso_remoto" name="acceso_remoto" class="form-select" required>
+                                    <option value="">Seleccione...</option><option value="no">No</option><option value="controlado">Sí, con controles</option><option value="debil">Sí, con pocos controles</option><option value="no_se">No sé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="servicios_nube" class="form-label fw-bold">¿Usa servicios en la nube para guardar datos o ejecutar procesos importantes? *</label>
+                                <select id="servicios_nube" name="servicios_nube" class="form-select" required>
+                                    <option value="">Seleccione...</option><option value="no">No</option><option value="controlados">Sí, conocemos sus controles</option><option value="desconocidos">Sí, desconocemos sus controles</option><option value="no_se">No sé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="historial_incidentes" class="form-label fw-bold">En los últimos 24 meses, ¿tuvo incidentes de seguridad o interrupciones? *</label>
+                                <select id="historial_incidentes" name="historial_incidentes" class="form-select" required>
+                                    <option value="">Seleccione...</option><option value="ninguno">No</option><option value="uno">Sí, uno</option><option value="multiples">Sí, más de uno</option><option value="no_se">No sé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="mfa" class="form-label fw-bold">¿Se usa verificación en dos pasos (MFA) en correo y cuentas administrativas? *</label>
+                                <select id="mfa" name="mfa" class="form-select" required>
+                                    <option value="">Seleccione...</option><option value="todos">En todas</option><option value="algunos">En algunas</option><option value="ninguno">En ninguna</option><option value="no_se">No sé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="gestion_cuentas" class="form-label fw-bold">¿Cada persona tiene su cuenta y se retiran accesos al salir? *</label>
+                                <select id="gestion_cuentas" name="gestion_cuentas" class="form-select" required>
+                                    <option value="">Seleccione...</option><option value="ambas">Sí, ambas prácticas</option><option value="parcial">Solo una</option><option value="ninguna">Ninguna</option><option value="no_se">No sé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="actualizaciones" class="form-label fw-bold">¿Los equipos y programas se actualizan regularmente? *</label>
+                                <select id="actualizaciones" name="actualizaciones" class="form-select" required>
+                                    <option value="">Seleccione...</option><option value="definidas">Sí, con proceso definido</option><option value="ocasionales">A veces</option><option value="raras">Rara vez</option><option value="no_se">No sé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="proteccion_equipos" class="form-label fw-bold">¿Los equipos de trabajo tienen protección contra malware? *</label>
+                                <select id="proteccion_equipos" name="proteccion_equipos" class="form-select" required>
+                                    <option value="">Seleccione...</option><option value="todos">En todos</option><option value="algunos">En algunos</option><option value="ninguno">En ninguno</option><option value="no_se">No sé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="copias_respaldo" class="form-label fw-bold">¿Se hacen copias de respaldo de la información importante? *</label>
+                                <select id="copias_respaldo" name="copias_respaldo" class="form-select" required>
+                                    <option value="">Seleccione...</option><option value="definidas">Sí, con frecuencia definida</option><option value="ocasionales">A veces</option><option value="ninguna">No</option><option value="no_se">No sé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="prueba_respaldo" class="form-label fw-bold">¿Probó recuperar información desde las copias en los últimos 12 meses? *</label>
+                                <select id="prueba_respaldo" name="prueba_respaldo" class="form-select" required>
+                                    <option value="">Seleccione...</option><option value="exitosa">Sí, con éxito</option><option value="problemas">Sí, pero hubo problemas</option><option value="no">No</option><option value="no_se">No sé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="aislamiento_respaldo" class="form-label fw-bold">¿Las copias están protegidas ante un incidente en los sistemas principales? *</label>
+                                <select id="aislamiento_respaldo" name="aislamiento_respaldo" class="form-select" required>
+                                    <option value="">Seleccione...</option><option value="si">Sí</option><option value="parcial">Parcialmente</option><option value="no">No</option><option value="no_se">No sé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="respuesta_incidentes" class="form-label fw-bold">¿Existe un procedimiento para reportar y atender incidentes? *</label>
+                                <select id="respuesta_incidentes" name="respuesta_incidentes" class="form-select" required>
+                                    <option value="">Seleccione...</option><option value="documentado">Sí, documentado y conocido</option><option value="informal">Existe, pero es informal</option><option value="ninguno">No</option><option value="no_se">No sé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="capacitacion" class="form-label fw-bold">¿El personal recibe orientación para reconocer amenazas? *</label>
+                                <select id="capacitacion" name="capacitacion" class="form-select" required>
+                                    <option value="">Seleccione...</option><option value="periodica">Periódicamente</option><option value="ocasional">Ocasionalmente</option><option value="nunca">Nunca</option><option value="no_se">No sé</option>
+                                </select>
                             </div>
                         </div>
 
@@ -251,25 +260,19 @@
 
                         <div class="mb-4">
                             <label for="observaciones" class="form-label fw-bold">
-                                Medidas de seguridad actuales o comentarios
+                                Contexto adicional (opcional)
                                 <span class="badge bg-success ms-2">Opcional</span>
                             </label>
                             <textarea id="observaciones" 
                                       name="observaciones" 
                                       class="form-control" 
                                       rows="6" 
-                                      placeholder="Describa las medidas de seguridad que ya tiene implementadas, como:
-- Antivirus y firewall
-- Sistema de respaldos
-- Políticas de acceso
-- Capacitación del personal
-- Certificaciones de seguridad
-- Otros controles implementados..."
+                                      placeholder="Agregue contexto útil para interpretar sus respuestas. No incluya contraseñas, direcciones IP, nombres de clientes ni otra información confidencial."
                                       maxlength="1000"></textarea>
                             <div class="form-text d-flex justify-content-between">
                                 <span>
                                     <i class="fas fa-lightbulb text-warning"></i> 
-                                    Proporcionar más detalles mejora la precisión del diagnóstico
+                                    Evite compartir información confidencial o datos personales
                                 </span>
                                 <span id="charCount">0/1000</span>
                             </div>
@@ -300,16 +303,16 @@
                                 <hr class="my-2">
                                 <div class="row small">
                                     <div class="col-md-4">
-                                        <strong>Riesgo:</strong><br>
-                                        <span id="resumenRiesgo">-</span>
+                                        <strong>Tipo de datos:</strong><br>
+                                        <span id="resumenDatos">-</span>
                                     </div>
                                     <div class="col-md-4">
-                                        <strong>Impacto:</strong><br>
-                                        <span id="resumenImpacto">-</span>
+                                        <strong>Dependencia digital:</strong><br>
+                                        <span id="resumenDependencia">-</span>
                                     </div>
                                     <div class="col-md-4">
-                                        <strong>Probabilidad:</strong><br>
-                                        <span id="resumenProbabilidad">-</span>
+                                        <strong>Incidentes recientes:</strong><br>
+                                        <span id="resumenIncidentes">-</span>
                                     </div>
                                 </div>
                             </div>
@@ -592,12 +595,12 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('sector').value || '-';
         document.getElementById('resumenTamano').textContent = 
             document.querySelector('input[name="tamano"]:checked')?.value || '-';
-        document.getElementById('resumenRiesgo').textContent = 
-            document.getElementById('tipo_riesgo').value || '-';
-        document.getElementById('resumenImpacto').textContent = 
-            document.getElementById('impacto').value || '-';
-        document.getElementById('resumenProbabilidad').textContent = 
-            document.getElementById('probabilidad').value || '-';
+        document.getElementById('resumenDatos').textContent =
+            document.querySelector('#tipo_datos option:checked')?.textContent || '-';
+        document.getElementById('resumenDependencia').textContent =
+            document.querySelector('#dependencia_sistemas option:checked')?.textContent || '-';
+        document.getElementById('resumenIncidentes').textContent =
+            document.querySelector('#historial_incidentes option:checked')?.textContent || '-';
     }
 
     // Event listeners para actualizar resumen en tiempo real

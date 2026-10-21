@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, flash, redirect, url_for, session, send_file, flash
+from werkzeug.exceptions import RequestEntityTooLarge
 from flask_wtf.csrf import CSRFProtect
 from contextlib import contextmanager
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -14,6 +15,7 @@ import os
 import math
 import logging
 import sys
+import unicodedata
 import pandas as pd
 import numpy as np
 from functools import wraps
@@ -58,6 +60,12 @@ MAX_FILE_SIZE = 16 * 1024 * 1024  # 16MB
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
+
+
+@app.errorhandler(RequestEntityTooLarge)
+def handle_file_too_large(_error):
+    flash('El archivo supera el límite de 16 MB. Guarda una copia más pequeña e inténtalo de nuevo.', 'error')
+    return redirect(url_for('upload'))
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs('static/profile_pics', exist_ok=True)
@@ -501,133 +509,180 @@ def incrementar_contador(user_id, tipo):
 
 # ==================== FUNCIONES DE ANÁLISIS ====================
 def analizar_riesgo(form_data):
-    """Analiza el riesgo basado en el formulario usando ML y un nivel más profundo de contexto empresarial."""
-    PUNTUACION = {
-        'tipo_riesgo': {'Tecnológico': 30, 'Financiero': 25, 'Operativo': 20, 'Reputacional': 25, 'Legal': 22},
-        'impacto': {'Alto': 40, 'Medio': 25, 'Bajo': 10},
-        'probabilidad': {'Alta': 30, 'Media': 20, 'Baja': 10}
+    """Calcula una evaluación explicable de riesgo inherente y residual (no es un modelo predictivo)."""
+    required_values = {
+        'sector': {'Tecnología', 'Financiero', 'Salud', 'Retail', 'Manufactura', 'Servicios', 'Educación', 'Gobierno', 'Otro'},
+        'tamano': {'Micro', 'Pequeña', 'Mediana', 'Grande'},
+        'dependencia_sistemas': {'baja', 'parcial', 'alta', 'no_se'},
+        'tiempo_recuperacion': {'mas_3_dias', '1_3_dias', 'menos_1_dia', 'no_puede_operar', 'no_se'},
+        'proveedores': {'ninguno', 'algunos', 'varios', 'no_se'},
+        'tipo_datos': {'ninguno', 'contacto', 'financiera', 'sensible', 'confidencial', 'no_se'},
+        'acceso_remoto': {'no', 'controlado', 'debil', 'no_se'},
+        'servicios_nube': {'no', 'controlados', 'desconocidos', 'no_se'},
+        'historial_incidentes': {'ninguno', 'uno', 'multiples', 'no_se'},
+        'mfa': {'todos', 'algunos', 'ninguno', 'no_se'},
+        'gestion_cuentas': {'ambas', 'parcial', 'ninguna', 'no_se'},
+        'actualizaciones': {'definidas', 'ocasionales', 'raras', 'no_se'},
+        'proteccion_equipos': {'todos', 'algunos', 'ninguno', 'no_se'},
+        'copias_respaldo': {'definidas', 'ocasionales', 'ninguna', 'no_se'},
+        'prueba_respaldo': {'exitosa', 'problemas', 'no', 'no_se'},
+        'aislamiento_respaldo': {'si', 'parcial', 'no', 'no_se'},
+        'respuesta_incidentes': {'documentado', 'informal', 'ninguno', 'no_se'},
+        'capacitacion': {'periodica', 'ocasional', 'nunca', 'no_se'},
     }
+    for field, allowed_values in required_values.items():
+        if form_data.get(field) not in allowed_values:
+            raise ValueError('Completa todas las preguntas del diagnóstico con una opción válida.')
+    if not form_data.get('empresa', '').strip():
+        raise ValueError('El nombre de la empresa es obligatorio.')
 
-    sector = form_data.get('sector', 'Otro')
-    tamano = form_data.get('tamano', 'Micro')
-    historial_incidentes = form_data.get('historial_incidentes', 'Nunca')
-    sensibilidad_datos = form_data.get('sensibilidad_datos', 'Media')
-    controles_seguridad = form_data.get('controles_seguridad', 'Medios')
-    copias_respaldo = form_data.get('copias_respaldo', 'Regulares')
-    mfa = form_data.get('mfa', 'Parcial')
+    probability_factors = {
+        'historial_incidentes': {'ninguno': 1, 'uno': 3, 'multiples': 5, 'no_se': 3},
+        'acceso_remoto': {'no': 1, 'controlado': 2, 'debil': 5, 'no_se': 3},
+        'servicios_nube': {'no': 1, 'controlados': 2, 'desconocidos': 4, 'no_se': 3},
+        'proveedores': {'ninguno': 1, 'algunos': 3, 'varios': 4},
+    }
+    likelihood = int(sum(mapping[form_data[key]] for key, mapping in probability_factors.items()) / len(probability_factors) + 0.5)
 
-    sector_factor = {'Tecnología': 12, 'Financiero': 15, 'Salud': 18, 'Retail': 10, 'Manufactura': 9, 'Servicios': 8, 'Educación': 7, 'Gobierno': 14, 'Otro': 6}
-    tamano_factor = {'Micro': 5, 'Pequeña': 8, 'Mediana': 12, 'Grande': 15}
-    historial_factor = {'Nunca': 0, 'Única vez': 8, 'Varios': 18, 'Frecuentes': 28}
-    sensibilidad_factor = {'Baja': 4, 'Media': 9, 'Alta': 18}
-    controles_factor = {'Fuertes': -12, 'Medios': 6, 'Bajos': 20}
-    respaldo_factor = {'Diarias': -8, 'Regulares': 4, 'Inconsistentes': 14}
-    mfa_factor = {'Total': -10, 'Parcial': 5, 'Ninguna': 18}
+    impact_factors = {
+        'dependencia_sistemas': {'baja': 1, 'parcial': 3, 'alta': 5, 'no_se': 3},
+        'tiempo_recuperacion': {'mas_3_dias': 1, '1_3_dias': 2, 'menos_1_dia': 4, 'no_puede_operar': 5, 'no_se': 3},
+        'tipo_datos': {'ninguno': 1, 'contacto': 2, 'financiera': 4, 'sensible': 5, 'confidencial': 4, 'no_se': 3},
+    }
+    impact = int(sum(mapping[form_data[key]] for key, mapping in impact_factors.items()) / len(impact_factors) + 0.5)
 
-    puntuacion = (
-        PUNTUACION['tipo_riesgo'].get(form_data['tipo_riesgo'], 0) +
-        PUNTUACION['impacto'].get(form_data['impacto'], 0) +
-        PUNTUACION['probabilidad'].get(form_data['probabilidad'], 0) +
-        sector_factor.get(sector, 6) +
-        tamano_factor.get(tamano, 5) +
-        historial_factor.get(historial_incidentes, 0) +
-        sensibilidad_factor.get(sensibilidad_datos, 9) +
-        controles_factor.get(controles_seguridad, 6) +
-        respaldo_factor.get(copias_respaldo, 4) +
-        mfa_factor.get(mfa, 5)
-    )
-
-    nivel_ml, probabilidades = risk_predictor.predict_risk(
-        form_data['tipo_riesgo'],
-        form_data['impacto'],
-        form_data['probabilidad'],
-        sector=sector,
-        tamano=tamano,
-        historial_incidentes=historial_incidentes,
-        sensibilidad_datos=sensibilidad_datos,
-        controles_seguridad=controles_seguridad,
-        copias_respaldo=copias_respaldo,
-        mfa=mfa
-    )
-
-    nivel_map = {'Bajo': 25, 'Medio': 50, 'Alto': 75, 'Crítico': 95}
-    puntuacion_ml = nivel_map[nivel_ml]
-    puntuacion_final = min(100, (puntuacion * 0.55) + (puntuacion_ml * 0.45))
+    control_factors = {
+        'mfa': {'todos': 1, 'algunos': 0.5, 'ninguno': 0, 'no_se': 0},
+        'gestion_cuentas': {'ambas': 1, 'parcial': 0.5, 'ninguna': 0, 'no_se': 0},
+        'actualizaciones': {'definidas': 1, 'ocasionales': 0.5, 'raras': 0, 'no_se': 0},
+        'proteccion_equipos': {'todos': 1, 'algunos': 0.5, 'ninguno': 0, 'no_se': 0},
+        'copias_respaldo': {'definidas': 1, 'ocasionales': 0.5, 'ninguna': 0, 'no_se': 0},
+        'prueba_respaldo': {'exitosa': 1, 'problemas': 0.5, 'no': 0, 'no_se': 0},
+        'aislamiento_respaldo': {'si': 1, 'parcial': 0.5, 'no': 0, 'no_se': 0},
+        'respuesta_incidentes': {'documentado': 1, 'informal': 0.5, 'ninguno': 0, 'no_se': 0},
+        'capacitacion': {'periodica': 1, 'ocasional': 0.5, 'nunca': 0, 'no_se': 0},
+    }
+    control_effectiveness = sum(mapping[form_data[key]] for key, mapping in control_factors.items()) / len(control_factors)
+    inherent_score = likelihood * impact * 4
+    residual_score = round(inherent_score * (1 - 0.6 * control_effectiveness))
+    puntuacion_final = min(100, residual_score)
 
     if puntuacion_final >= 75:
-        nivel = 'Crítico'
-        color = 'danger'
-    elif puntuacion_final >= 55:
-        nivel = 'Alto'
-        color = 'warning'
-    elif puntuacion_final >= 35:
-        nivel = 'Medio'
-        color = 'info'
+        nivel, color = 'Crítico', 'danger'
+    elif puntuacion_final >= 50:
+        nivel, color = 'Alto', 'warning'
+    elif puntuacion_final >= 25:
+        nivel, color = 'Medio', 'info'
     else:
-        nivel = 'Bajo'
-        color = 'success'
+        nivel, color = 'Bajo', 'success'
 
-    recomendaciones = generar_recomendaciones(nivel, form_data['tipo_riesgo'])
-    ml_inputs = {
-        'sector': sector,
-        'tamano': tamano,
-        'historial_incidentes': historial_incidentes,
-        'sensibilidad_datos': sensibilidad_datos,
-        'controles_seguridad': controles_seguridad,
-        'copias_respaldo': copias_respaldo,
-        'mfa': mfa,
-        'empresa': form_data.get('empresa', '')
+    level_map = {1: 'Baja', 2: 'Baja', 3: 'Media', 4: 'Alta', 5: 'Alta'}
+    impact_level_map = {1: 'Bajo', 2: 'Bajo', 3: 'Medio', 4: 'Alto', 5: 'Alto'}
+    if form_data['tipo_datos'] == 'financiera':
+        tipo_riesgo = 'Financiero'
+    elif form_data['tipo_datos'] in {'sensible', 'contacto'}:
+        tipo_riesgo = 'Legal'
+    elif form_data['dependencia_sistemas'] == 'alta':
+        tipo_riesgo = 'Operativo'
+    else:
+        tipo_riesgo = 'Tecnológico'
+
+    findings = []
+    recommendations = []
+    recommendation_map = [
+        ('mfa', {'algunos', 'ninguno', 'no_se'}, 'Habilitar MFA en todas las cuentas, empezando por correo y cuentas administrativas.'),
+        ('gestion_cuentas', {'parcial', 'ninguna', 'no_se'}, 'Asignar cuentas individuales y retirar accesos al cambiar funciones o salir de la empresa.'),
+        ('actualizaciones', {'ocasionales', 'raras', 'no_se'}, 'Establecer un proceso periódico para actualizar sistemas y aplicaciones.'),
+        ('proteccion_equipos', {'algunos', 'ninguno', 'no_se'}, 'Verificar que todos los equipos de trabajo tengan protección contra malware.'),
+        ('copias_respaldo', {'ocasionales', 'ninguna', 'no_se'}, 'Definir y automatizar copias de seguridad de la información crítica.'),
+        ('prueba_respaldo', {'problemas', 'no', 'no_se'}, 'Probar periódicamente la restauración de copias y corregir los fallos encontrados.'),
+        ('aislamiento_respaldo', {'parcial', 'no', 'no_se'}, 'Mantener copias protegidas y separadas de los sistemas principales.'),
+        ('respuesta_incidentes', {'informal', 'ninguno', 'no_se'}, 'Documentar un procedimiento para reportar, contener y atender incidentes.'),
+        ('capacitacion', {'ocasional', 'nunca', 'no_se'}, 'Capacitar periódicamente al personal para reconocer y reportar amenazas.'),
+    ]
+    labels = {
+        'mfa': 'MFA', 'gestion_cuentas': 'Gestión de cuentas',
+        'actualizaciones': 'Actualizaciones', 'proteccion_equipos': 'Protección de equipos',
+        'copias_respaldo': 'Copias de respaldo', 'prueba_respaldo': 'Pruebas de recuperación',
+        'aislamiento_respaldo': 'Aislamiento de respaldos',
+        'respuesta_incidentes': 'Respuesta a incidentes', 'capacitacion': 'Capacitación',
+        'acceso_remoto': 'Acceso remoto', 'servicios_nube': 'Servicios en la nube',
+        'proveedores': 'Dependencia de proveedores',
+        'dependencia_sistemas': 'Dependencia de sistemas',
+        'tiempo_recuperacion': 'Continuidad operativa',
+        'tipo_datos': 'Protección de información',
     }
+    priority = 'URGENTE' if nivel == 'Crítico' else 'Alta' if nivel == 'Alto' else 'Media'
+
+    exposure_recommendations = [
+        ('acceso_remoto', {'debil', 'no_se'}, 'Revisar cómo se habilita el acceso remoto y protegerlo con MFA y mecanismos seguros.'),
+        ('servicios_nube', {'desconocidos', 'no_se'}, 'Inventariar los servicios en la nube y revisar sus permisos, autenticación y opciones de recuperación.'),
+        ('proveedores', {'varios'}, 'Identificar proveedores críticos y confirmar sus medidas de seguridad y continuidad.'),
+        ('dependencia_sistemas', {'alta'}, 'Definir una alternativa operativa para mantener procesos críticos durante interrupciones.'),
+        ('tiempo_recuperacion', {'no_puede_operar'}, 'Preparar un plan de continuidad para reducir la interrupción de la operación.'),
+        ('tipo_datos', {'financiera', 'sensible'}, 'Limitar el acceso a información financiera o sensible y revisar su protección y conservación.'),
+    ]
+    for field, relevant_values, recommendation in exposure_recommendations:
+        if form_data[field] in relevant_values:
+            findings.append(labels[field])
+            recommendations.append({'prioridad': priority, 'titulo': recommendation})
+
+    for field, weak_values, recommendation in recommendation_map:
+        value = form_data[field]
+        if value in weak_values:
+            findings.append(labels[field])
+            recommendations.append({
+                'prioridad': priority,
+                'titulo': recommendation,
+            })
+
+    if form_data['historial_incidentes'] in {'uno', 'multiples'}:
+        recommendations.insert(0, {
+            'prioridad': 'URGENTE' if form_data['historial_incidentes'] == 'multiples' else 'Alta',
+            'titulo': 'Revisar incidentes anteriores, documentar sus causas y verificar que las medidas correctivas sigan activas.',
+        })
+    if not recommendations:
+        recommendations.append({
+            'prioridad': 'Media',
+            'titulo': 'Mantener los controles actuales y revisar periódicamente que continúen funcionando.',
+        })
+    unknown_count = sum(form_data[field] == 'no_se' for field in required_values)
+    answered_fields = len(required_values) - unknown_count
+    completeness = round(answered_fields / len(required_values) * 100)
 
     return {
-        'empresa': form_data['empresa'],
-        'tipo_riesgo': form_data['tipo_riesgo'],
-        'impacto': form_data['impacto'],
-        'probabilidad': form_data['probabilidad'],
-        'puntuacion_final': round(puntuacion_final, 2),
+        'empresa': form_data['empresa'].strip(),
+        'tipo_riesgo': tipo_riesgo,
+        'impacto': impact_level_map[impact],
+        'probabilidad': level_map[likelihood],
+        'puntuacion_final': puntuacion_final,
         'nivel_riesgo': nivel,
         'color_riesgo': color,
-        'recomendaciones': recomendaciones,
+        'recomendaciones': recommendations,
+        'hallazgos': findings,
+        'puntuacion_inherente': inherent_score,
+        'efectividad_controles': round(control_effectiveness * 100),
+        'completitud': completeness,
+        'likelihood': likelihood,
+        'impact': impact,
         'observaciones': form_data.get('observaciones', ''),
-        'ml_prediction': nivel_ml,
-        'ml_inputs': ml_inputs,
-        'ml_confidence': {
-            'Bajo': round(probabilidades[0] * 100, 2),
-            'Medio': round(probabilidades[1] * 100, 2),
-            'Alto': round(probabilidades[2] * 100, 2),
-            'Crítico': round(probabilidades[3] * 100, 2)
-        },
-        'desglose_puntuacion': {
-            'base': puntuacion,
-            'ml': puntuacion_ml,
-            'final': round(puntuacion_final, 2)
-        }
     }
 
-def generar_recomendaciones(nivel, tipo_riesgo):
-    """Genera recomendaciones según el nivel de riesgo"""
-    recomendaciones = []
-    
-    if nivel in ['Crítico', 'Alto']:
-        recomendaciones.extend([
-            {'prioridad': 'URGENTE', 'titulo': 'Implementar plan de respuesta a incidentes'},
-            {'prioridad': 'Alta', 'titulo': 'Auditoría de seguridad completa'}
-        ])
-    
-    if tipo_riesgo == 'Tecnológico':
-        recomendaciones.extend([
-            {'prioridad': 'Alta', 'titulo': 'Actualizar sistemas antivirus'},
-            {'prioridad': 'Media', 'titulo': 'Configurar firewall empresarial'}
-        ])
-    elif tipo_riesgo == 'Financiero':
-        recomendaciones.extend([
-            {'prioridad': 'Alta', 'titulo': 'Implementar autenticación de dos factores'},
-            {'prioridad': 'Alta', 'titulo': 'Monitoreo de transacciones'}
-        ])
-    
-    recomendaciones.append({'prioridad': 'Media', 'titulo': 'Capacitación del personal'})
-    
-    return recomendaciones
+def obtener_datos_formulario(form):
+    """Extrae las respuestas del nuevo formulario estructurado."""
+    fields = (
+        'sector', 'tamano', 'dependencia_sistemas', 'tiempo_recuperacion',
+        'proveedores', 'tipo_datos', 'acceso_remoto', 'servicios_nube',
+        'historial_incidentes', 'mfa', 'gestion_cuentas', 'actualizaciones',
+        'proteccion_equipos', 'copias_respaldo', 'prueba_respaldo',
+        'aislamiento_respaldo', 'respuesta_incidentes', 'capacitacion',
+    )
+    data = {field: form.get(field, '') for field in fields}
+    data.update({
+        'empresa': form.get('empresa', '').strip(),
+        'observaciones': form.get('observaciones', '').strip()[:1000],
+    })
+    return data
 
 def check_password_hash_custom(pwhash, password):
     """Verificar contraseña manejando hashes vacíos o inválidos"""
@@ -834,25 +889,18 @@ def diagnostico():
             if session['guest_diagnosticos'] >= 2:
                 flash('Límite de invitado alcanzado (2/2). Regístrate para continuar.', 'warning')
                 return redirect(url_for('register'))
-            
+            form_data = obtener_datos_formulario(request.form)
+            try:
+                resultado = analizar_riesgo(form_data)
+            except ValueError as exc:
+                flash(str(exc), 'error')
+                return render_template(
+                    'diagnostico.html',
+                    modo='invitado',
+                    restantes=2-session.get('guest_diagnosticos', 0)
+                ), 400
+
             session['guest_diagnosticos'] += 1
-            
-            form_data = {
-                'empresa': request.form.get('empresa'),
-                'sector': request.form.get('sector'),
-                'tamano': request.form.get('tamano'),
-                'tipo_riesgo': request.form.get('tipo_riesgo'),
-                'impacto': request.form.get('impacto'),
-                'probabilidad': request.form.get('probabilidad'),
-                'historial_incidentes': request.form.get('historial_incidentes'),
-                'sensibilidad_datos': request.form.get('sensibilidad_datos'),
-                'controles_seguridad': request.form.get('controles_seguridad'),
-                'copias_respaldo': request.form.get('copias_respaldo'),
-                'mfa': request.form.get('mfa'),
-                'observaciones': request.form.get('observaciones', '')
-            }
-            
-            resultado = analizar_riesgo(form_data)
             resultado['modo'] = 'invitado'
             resultado['restantes'] = 2 - session['guest_diagnosticos']
             
@@ -868,22 +916,20 @@ def diagnostico():
             flash(mensaje, 'error')
             return redirect(url_for('diagnostico'))
         
-        form_data = {
-            'empresa': request.form.get('empresa'),
-            'sector': request.form.get('sector'),
-            'tamano': request.form.get('tamano'),
-            'tipo_riesgo': request.form.get('tipo_riesgo'),
-            'impacto': request.form.get('impacto'),
-            'probabilidad': request.form.get('probabilidad'),
-            'historial_incidentes': request.form.get('historial_incidentes'),
-            'sensibilidad_datos': request.form.get('sensibilidad_datos'),
-            'controles_seguridad': request.form.get('controles_seguridad'),
-            'copias_respaldo': request.form.get('copias_respaldo'),
-            'mfa': request.form.get('mfa'),
-            'observaciones': request.form.get('observaciones', '')
-        }
-        
-        resultado = analizar_riesgo(form_data)
+        form_data = obtener_datos_formulario(request.form)
+        try:
+            resultado = analizar_riesgo(form_data)
+        except ValueError as exc:
+            flash(str(exc), 'error')
+            return render_template(
+                'diagnostico.html',
+                modo='registrado',
+                mensaje=mensaje
+            ), 400
+
+        form_data['tipo_riesgo'] = resultado['tipo_riesgo']
+        form_data['impacto'] = resultado['impacto']
+        form_data['probabilidad'] = resultado['probabilidad']
         
         # Guardar en BD
         with get_db() as conn:
@@ -995,6 +1041,11 @@ def enriquecer_analisis_con_vista_tabla(analisis, df):
     
     # ========== NUEVO: MAPA DE CALOR DE ANOMALÍAS ==========
     analisis['mapa_calor'] = generar_mapa_calor(df, analisis['anomalias'])
+    analisis['celdas_marcadas_preview'] = sum(
+        level > 0
+        for row in analisis['mapa_calor']
+        for level in row.values()
+    )
     
     # ========== NUEVO: DATOS PARA GRÁFICAS CORREGIDAS ==========
     analisis['graficas'] = {
@@ -1007,34 +1058,89 @@ def enriquecer_analisis_con_vista_tabla(analisis, df):
 
 # ==================== NUEVAS FUNCIONES: MAPA DE CALOR ====================
 def generar_mapa_calor(df, anomalias):
-    """Genera un mapa de calor para visualizar anomalías por celda"""
-    mapa = []
-    
-    for idx, row in df.head(50).iterrows():
-        fila_calor = {}
-        for col in df.columns:
-            nivel_riesgo = 0  # 0=Sin riesgo, 1=Bajo, 2=Medio, 3=Alto
-            
-            # Verificar si hay valor nulo
-            if pd.isna(row[col]) or row[col] == '':
-                nivel_riesgo = 3
-            
-            # Verificar si es un outlier numérico
-            elif pd.api.types.is_numeric_dtype(df[col]):
-                Q1 = df[col].quantile(0.25)
-                Q3 = df[col].quantile(0.75)
-                IQR = Q3 - Q1
-                lower = Q1 - 1.5 * IQR
-                upper = Q3 + 1.5 * IQR
-                
-                if row[col] < lower or row[col] > upper:
-                    nivel_riesgo = 2
-            
-            fila_calor[col] = nivel_riesgo
-        
-        mapa.append(fila_calor)
-    
-    return mapa
+    """Marca en la vista previa las celdas que corresponden a alertas detectadas."""
+    preview = df.head(50)
+    levels = pd.DataFrame(0, index=preview.index, columns=preview.columns, dtype=int)
+    families = {anomaly.get('familia') for anomaly in anomalias}
+
+    def mark(mask, columns, level):
+        for column in columns:
+            if column in levels.columns:
+                selected = mask.reindex(levels.index, fill_value=False)
+                levels.loc[selected, column] = levels.loc[selected, column].clip(lower=level)
+
+    if 'celdas_vacias' in families:
+        for column in df.columns:
+            mark(df[column].isna() | df[column].astype(str).str.strip().eq(''), [column], 3)
+
+    if 'filas_repetidas' in families:
+        duplicate_rows = df.duplicated(keep=False)
+        mark(duplicate_rows, df.columns, 2)
+
+    if 'valores_atipicos' in families:
+        columns = {
+            item['columna']
+            for anomaly in anomalias if anomaly.get('familia') == 'valores_atipicos'
+            for item in anomaly.get('columnas_afectadas', [])
+        }
+        for column in columns:
+            if pd.api.types.is_numeric_dtype(df[column]):
+                values = df[column]
+                q1, q3 = values.quantile(0.25), values.quantile(0.75)
+                iqr = q3 - q1
+                mark((values < q1 - 1.5 * iqr) | (values > q3 + 1.5 * iqr), [column], 2)
+
+    if 'importes_redondos' in families:
+        columns = {
+            item['columna']
+            for anomaly in anomalias if anomaly.get('familia') == 'importes_redondos'
+            for item in anomaly.get('columnas_afectadas', [])
+        }
+        for column in columns:
+            if pd.api.types.is_numeric_dtype(df[column]):
+                values = df[column]
+                rounded = values.notna() & (
+                    values.mod(100).eq(0) | values.mod(500).eq(0) | values.mod(1000).eq(0)
+                )
+                mark(rounded, [column], 1)
+
+    if 'cambios_importe' in families:
+        columns = {
+            item['columna']
+            for anomaly in anomalias if anomaly.get('familia') == 'cambios_importe'
+            for item in anomaly.get('columnas_afectadas', [])
+        }
+        for column in columns:
+            if pd.api.types.is_numeric_dtype(df[column]):
+                differences = df[column].dropna().diff().abs()
+                mean, std = differences.mean(), differences.std()
+                mark(differences > mean + 3 * std, [column], 1)
+
+    if 'numeracion_comprobantes' in families:
+        columns = {
+            item['columna']
+            for anomaly in anomalias if anomaly.get('familia') == 'numeracion_comprobantes'
+            for item in anomaly.get('columnas_afectadas', [])
+        }
+        for column in columns:
+            sequence = pd.to_numeric(df[column], errors='coerce')
+            ordered = sequence.dropna().sort_values()
+            gap_values = ordered[ordered.diff() > 1]
+            gap_rows = sequence.isin(gap_values)
+            mark(gap_rows, [column], 1)
+
+    if 'balance_contable' in families:
+        debit_columns = [
+            column for column in df.columns
+            if any(term in normalizar_nombre_columna(column) for term in ('debito', 'debit', 'debe'))
+        ]
+        credit_columns = [
+            column for column in df.columns
+            if any(term in normalizar_nombre_columna(column) for term in ('credito', 'credit', 'haber'))
+        ]
+        mark(pd.Series(True, index=df.index), debit_columns + credit_columns, 2)
+
+    return levels.to_dict(orient='records')
 
 def generar_datos_grafica_anomalias(anomalias):
     """Prepara datos para gráfica de anomalías"""
@@ -1109,8 +1215,11 @@ def analizar_archivo(df):
     Se aplica un factor adaptativo según tamaño del archivo para evitar falsos positivos
     en datasets pequeños.
     """
-    puntuacion = 0.0
+    puntuaciones_por_regla = {}
     anomalias = []
+
+    def agregar_puntuacion(regla, valor):
+        puntuaciones_por_regla[regla] = max(puntuaciones_por_regla.get(regla, 0), valor)
 
     # Metadatos
     total_registros = len(df)
@@ -1138,7 +1247,7 @@ def analizar_archivo(df):
             porcentaje = (nulos / total_registros) * 100 if total_registros > 0 else 0
             if total_registros >= min_strong:
                 if porcentaje > 20:
-                    puntuacion += 30 * scale
+                    agregar_puntuacion('valores_nulos', 30 * scale)
                     anomalias.append({
                         'tipo': 'VALORES NULOS CRÍTICOS',
                         'columna': columna,
@@ -1147,7 +1256,7 @@ def analizar_archivo(df):
                         'categoria': 'Calidad de Datos'
                     })
                 elif porcentaje > 5:
-                    puntuacion += 15 * scale
+                    agregar_puntuacion('valores_nulos', 15 * scale)
                     anomalias.append({
                         'tipo': 'Valores nulos',
                         'columna': columna,
@@ -1158,7 +1267,7 @@ def analizar_archivo(df):
             else:
                 # Archivo pequeño: sólo alertas muy altas
                 if porcentaje >= 50:
-                    puntuacion += 8 * scale
+                    agregar_puntuacion('valores_nulos', 8 * scale)
                     anomalias.append({
                         'tipo': 'Valores nulos (archivo pequeño)',
                         'columna': columna,
@@ -1173,7 +1282,7 @@ def analizar_archivo(df):
         porcentaje_dup = (duplicados / total_registros) * 100
         if total_registros >= min_strong:
             if porcentaje_dup > 5:
-                puntuacion += 25 * scale
+                agregar_puntuacion('duplicados', 25 * scale)
                 anomalias.append({
                     'tipo': 'DUPLICADOS EXACTOS - POSIBLE ERROR',
                     'cantidad': duplicados,
@@ -1181,7 +1290,7 @@ def analizar_archivo(df):
                     'categoria': 'Integridad'
                 })
             elif porcentaje_dup > 0:
-                puntuacion += 10 * scale
+                agregar_puntuacion('duplicados', 10 * scale)
                 anomalias.append({
                     'tipo': 'Registros duplicados',
                     'cantidad': duplicados,
@@ -1190,7 +1299,7 @@ def analizar_archivo(df):
                 })
         else:
             if porcentaje_dup > 20:
-                puntuacion += 6 * scale
+                agregar_puntuacion('duplicados', 6 * scale)
                 anomalias.append({
                     'tipo': 'Duplicados (archivo pequeño)',
                     'cantidad': duplicados,
@@ -1211,7 +1320,7 @@ def analizar_archivo(df):
             porcentaje = (transacciones_redondas / nonnull_count) * 100
             if nonnull_count >= min_strong:
                 if porcentaje > 20:
-                    puntuacion += 35 * scale
+                    agregar_puntuacion('importes_redondos', 35 * scale)
                     anomalias.append({
                         'tipo': 'TRANSACCIONES REDONDAS SOSPECHOSAS',
                         'columna': col,
@@ -1220,7 +1329,7 @@ def analizar_archivo(df):
                         'categoria': 'Fraude'
                     })
                 elif porcentaje > 5:
-                    puntuacion += 12 * scale
+                    agregar_puntuacion('importes_redondos', 12 * scale)
                     anomalias.append({
                         'tipo': 'Transacciones redondas',
                         'columna': col,
@@ -1230,7 +1339,7 @@ def analizar_archivo(df):
                     })
             else:
                 if porcentaje > 50:
-                    puntuacion += 6 * scale
+                    agregar_puntuacion('importes_redondos', 6 * scale)
                     anomalias.append({
                         'tipo': 'Transacciones redondas (muestra pequeña)',
                         'columna': col,
@@ -1246,7 +1355,7 @@ def analizar_archivo(df):
         if outliers_financieros > 0 and nonnull_count > 0:
             porcentaje = (outliers_financieros / nonnull_count) * 100
             if nonnull_count >= min_strong and porcentaje > 5:
-                puntuacion += 30 * scale
+                agregar_puntuacion('valores_extremos', 30 * scale)
                 anomalias.append({
                     'tipo': 'VALORES EXTREMOS EN MONTOS',
                     'columna': col,
@@ -1255,7 +1364,7 @@ def analizar_archivo(df):
                     'categoria': 'Riesgo Financiero'
                 })
             elif porcentaje > 25:
-                puntuacion += 8 * scale
+                agregar_puntuacion('valores_extremos', 8 * scale)
                 anomalias.append({
                     'tipo': 'Valores extremos (muestra pequeña)',
                     'columna': col,
@@ -1271,7 +1380,7 @@ def analizar_archivo(df):
         if transacciones_nocturnas > 0 and nonnull_count >= min_strong:
             porcentaje = (transacciones_nocturnas / nonnull_count) * 100
             if porcentaje > 15:
-                puntuacion += 20 * scale
+                agregar_puntuacion('horario_nocturno', 20 * scale)
                 anomalias.append({
                     'tipo': 'TRANSACCIONES FUERA DE HORARIO',
                     'columna': col,
@@ -1285,7 +1394,7 @@ def analizar_archivo(df):
         if len(df[col].dropna()) > 100:
             desviacion_benford = analizar_ley_benford(df[col])
             if desviacion_benford > 0.15:
-                puntuacion += 25 * scale
+                agregar_puntuacion('benford', 25 * scale)
                 anomalias.append({
                     'tipo': 'DESVIACIÓN LEY DE BENFORD',
                     'columna': col,
@@ -1298,7 +1407,7 @@ def analizar_archivo(df):
         nonnull_count = int(df[col].dropna().shape[0])
         saltos_bruscos = int(detectar_saltos_bruscos(df[col]))
         if saltos_bruscos > 0 and nonnull_count >= min_strong:
-            puntuacion += 12 * scale
+            agregar_puntuacion('saltos_montos', 12 * scale)
             anomalias.append({
                 'tipo': 'Saltos bruscos en valores',
                 'columna': col,
@@ -1313,7 +1422,7 @@ def analizar_archivo(df):
         if transacciones_finde > 0 and nonnull_count >= min_strong:
             porcentaje = (transacciones_finde / nonnull_count) * 100
             if porcentaje > 10:
-                puntuacion += 12 * scale
+                agregar_puntuacion('operaciones_fin_semana', 12 * scale)
                 anomalias.append({
                     'tipo': 'Transacciones en fin de semana',
                     'columna': col,
@@ -1326,9 +1435,9 @@ def analizar_archivo(df):
     desbalance = int(detectar_asientos_desbalanceados(df))
     if desbalance > 0:
         if total_registros >= 5:
-            puntuacion += 30 * scale
+            agregar_puntuacion('balance_contable', 30 * scale)
         else:
-            puntuacion += 10 * scale
+            agregar_puntuacion('balance_contable', 10 * scale)
         anomalias.append({
             'tipo': 'ASIENTOS CONTABLES DESBALANCEADOS',
             'cantidad': int(desbalance),
@@ -1336,10 +1445,13 @@ def analizar_archivo(df):
         })
 
     # Huecos en secuencia (muestras pequeñas penalizadas menos)
+    sequence_terms = ('consecutivo', 'comprobante', 'asiento', 'factura', 'recibo', 'voucher', 'invoice', 'folio')
     for col in df.select_dtypes(include=[np.number]).columns:
+        if not any(term in normalizar_nombre_columna(col) for term in sequence_terms):
+            continue
         huecos_secuencia = int(detectar_huecos_secuencia(df[col]))
         if huecos_secuencia > 0:
-            puntuacion += 6 * scale
+            agregar_puntuacion('huecos_secuencia', 6 * scale)
             anomalias.append({
                 'tipo': 'Huecos en secuencia numérica',
                 'columna': col,
@@ -1362,7 +1474,7 @@ def analizar_archivo(df):
             porcentaje_out = (outliers / nonnull_count) * 100
             if nonnull_count >= min_strong:
                 if porcentaje_out > 10:
-                    puntuacion += 25 * scale
+                    agregar_puntuacion('outliers_numericos', 25 * scale)
                     anomalias.append({
                         'tipo': 'OUTLIERS CRÍTICOS',
                         'columna': col,
@@ -1371,7 +1483,7 @@ def analizar_archivo(df):
                         'categoria': 'Calidad de Datos'
                     })
                 else:
-                    puntuacion += 8 * scale
+                    agregar_puntuacion('outliers_numericos', 8 * scale)
                     anomalias.append({
                         'tipo': 'Valores atípicos',
                         'columna': col,
@@ -1381,7 +1493,7 @@ def analizar_archivo(df):
                     })
             else:
                 if porcentaje_out > 30:
-                    puntuacion += 6 * scale
+                    agregar_puntuacion('outliers_numericos', 6 * scale)
                     anomalias.append({
                         'tipo': 'Valores atípicos (muestra pequeña)',
                         'columna': col,
@@ -1389,6 +1501,8 @@ def analizar_archivo(df):
                         'porcentaje': f'{porcentaje_out:.1f}%',
                         'categoria': 'Calidad de Datos'
                     })
+
+    puntuacion = sum(puntuaciones_por_regla.values())
 
     # ========== CLASIFICACIÓN DE RIESGO ==========
     nivel_ml, probabilidades = risk_predictor.predict_file_risk(df)
@@ -1403,6 +1517,11 @@ def analizar_archivo(df):
         nivel_riesgo = 'Medio'
     else:
         nivel_riesgo = 'Bajo'
+
+    anomalias = agrupar_anomalias(anomalias)
+    for anomalia in anomalias:
+        explicacion = explicar_anomalia(anomalia)
+        anomalia.update(explicacion)
 
     return {
         'total_registros': total_registros,
@@ -1424,17 +1543,204 @@ def analizar_archivo(df):
         }
     }
 
+
+def explicar_anomalia(anomalia):
+    """Traduce alertas técnicas del análisis a explicaciones y pasos comprensibles."""
+    family_explanations = {
+        'celdas_vacias': (
+            'Hay celdas vacías en una o varias columnas.',
+            'Revise si esos espacios son esperados. Si el dato es obligatorio para el negocio, complete o corrija el registro.'
+        ),
+        'filas_repetidas': (
+            'Hay filas iguales o repetidas en el archivo.',
+            'Compare fecha, comprobante y cuenta para confirmar si son movimientos duplicados o registros legítimos. No borre filas sin comprobarlo.'
+        ),
+        'importes_redondos': (
+            'Algunos importes terminan en ceros o son múltiplos exactos.',
+            'Compare esos movimientos con facturas o recibos. Los importes redondos son comunes y por sí solos no indican un problema.'
+        ),
+        'valores_atipicos': (
+            'Algunos valores se alejan bastante del resto.',
+            'Revise los registros de esas columnas y confirme que la moneda, la unidad y el periodo sean correctos. Un valor diferente puede ser legítimo.'
+        ),
+        'cambios_importe': (
+            'Hay cambios grandes entre importes registrados uno después de otro.',
+            'Compruebe si corresponden a pagos extraordinarios, cambios de precio o ajustes normales del negocio.'
+        ),
+        'numeracion_comprobantes': (
+            'La numeración de comprobantes salta algunos números.',
+            'Por ejemplo, podría pasar de 12 a 14 y no aparecer el 13. Esto puede ser normal si se anularon comprobantes; revise si su negocio exige una numeración continua.'
+        ),
+    }
+    if anomalia.get('familia') in family_explanations:
+        explanation, suggested_action = family_explanations[anomalia['familia']]
+        return {'explicacion': explanation, 'accion_sugerida': suggested_action}
+
+    explanations = {
+        'VALORES NULOS CRÍTICOS': (
+            'Faltan muchos datos en esta columna.',
+            'Compruebe si los datos faltantes son esperados y complete o corrija los registros cuando sea posible.'
+        ),
+        'Valores nulos': (
+            'Hay algunas celdas vacías en esta columna.',
+            'Revise si esos campos deberían tener información antes de usar el archivo para reportes.'
+        ),
+        'Valores nulos (archivo pequeño)': (
+            'En este archivo pequeño hay varias celdas vacías.',
+            'Revise las filas indicadas; en archivos pequeños, unas pocas celdas pueden influir bastante en el análisis.'
+        ),
+        'DUPLICADOS EXACTOS - POSIBLE ERROR': (
+            'Se encontraron filas completamente repetidas.',
+            'Confirme si son movimientos distintos o si algún registro se cargó más de una vez; no elimine filas sin verificar.'
+        ),
+        'Registros duplicados': (
+            'Hay filas repetidas en el archivo.',
+            'Revise los identificadores y fechas para confirmar si son duplicados reales o movimientos legítimos.'
+        ),
+        'Duplicados (archivo pequeño)': (
+            'Se detectaron repeticiones en una muestra pequeña.',
+            'Verifique manualmente las filas repetidas; el tamaño de la muestra puede hacer que esta alerta sea menos representativa.'
+        ),
+        'TRANSACCIONES REDONDAS SOSPECHOSAS': (
+            'Aparecen muchos importes redondos o con cambios poco habituales.',
+            'Compare esos movimientos con facturas, recibos o soportes. Un importe redondo por sí solo no demuestra fraude.'
+        ),
+        'Transacciones redondas': (
+            'Se observaron algunos importes redondos.',
+            'Compruebe si los valores corresponden a precios o pagos habituales del negocio.'
+        ),
+        'Transacciones redondas (muestra pequeña)': (
+            'En esta muestra pequeña hay importes redondos.',
+            'Tómelo como una señal para revisar, no como evidencia de un problema.'
+        ),
+        'VALORES EXTREMOS EN MONTOS': (
+            'Algunos importes son mucho mayores o menores que la mayoría.',
+            'Verifique los movimientos extremos con sus soportes y confirme que la moneda y el formato sean correctos.'
+        ),
+        'Valores extremos (muestra pequeña)': (
+            'Hay importes que se apartan de los demás en una muestra pequeña.',
+            'Revise esos valores manualmente; con pocos registros es más difícil distinguir lo normal de lo inusual.'
+        ),
+        'TRANSACCIONES FUERA DE HORARIO': (
+            'Hay movimientos registrados en horarios poco habituales.',
+            'Confirme el horario de operación y quién autorizó esos movimientos; algunos negocios operan fuera del horario convencional.'
+        ),
+        'DESVIACIÓN LEY DE BENFORD': (
+            'La distribución de los primeros dígitos difiere de un patrón estadístico esperado.',
+            'Considérelo solo como una señal estadística. No prueba fraude y puede no aplicar a todos los tipos de datos.'
+        ),
+        'Saltos bruscos en valores': (
+            'La columna presenta cambios grandes entre algunos importes consecutivos.',
+            'Compruebe si hubo cambios de precio, pagos extraordinarios, ajustes o errores de digitación.'
+        ),
+        'Transacciones en fin de semana': (
+            'Se registraron movimientos durante fines de semana.',
+            'Verifique si la empresa realiza operaciones esos días; puede ser completamente normal según la actividad.'
+        ),
+        'ASIENTOS CONTABLES DESBALANCEADOS': (
+            'La suma de las columnas de débito y crédito no coincide según esta revisión.',
+            'Confirme que las columnas estén bien identificadas, usen la misma moneda y correspondan al mismo conjunto de asientos; consulte a una persona contadora.'
+        ),
+        'Huecos en secuencia numérica': (
+            'La numeración de comprobantes salta algunos números.',
+            'Por ejemplo, podría pasar de 12 a 14 y no aparecer el 13. Esto puede ser normal si se anularon comprobantes; revise si su negocio exige una numeración continua.'
+        ),
+        'OUTLIERS CRÍTICOS': (
+            'Muchos valores se alejan del rango habitual de esta columna.',
+            'Revise los valores señalados y valide la unidad, la moneda y el periodo comparado.'
+        ),
+        'Valores atípicos': (
+            'Algunos valores se alejan del rango habitual de la columna.',
+            'Verifique los registros con sus soportes. Un valor atípico puede ser válido.'
+        ),
+        'Valores atípicos (muestra pequeña)': (
+            'Algunos valores se apartan del resto de esta muestra pequeña.',
+            'Revise los registros manualmente; la alerta puede cambiar mucho con más datos.'
+        ),
+    }
+    explanation, suggested_action = explanations.get(
+        anomalia.get('tipo'),
+        ('Se encontró un patrón que merece revisión.', 'Verifique los registros originales antes de tomar una decisión.')
+    )
+    return {'explicacion': explanation, 'accion_sugerida': suggested_action}
+
+
+def agrupar_anomalias(anomalias):
+    """Agrupa alertas repetidas de la misma regla y conserva el detalle por columna."""
+    families = {
+        'VALORES NULOS CRÍTICOS': 'celdas_vacias',
+        'Valores nulos': 'celdas_vacias',
+        'Valores nulos (archivo pequeño)': 'celdas_vacias',
+        'DUPLICADOS EXACTOS - POSIBLE ERROR': 'filas_repetidas',
+        'Registros duplicados': 'filas_repetidas',
+        'Duplicados (archivo pequeño)': 'filas_repetidas',
+        'TRANSACCIONES REDONDAS SOSPECHOSAS': 'importes_redondos',
+        'Transacciones redondas': 'importes_redondos',
+        'Transacciones redondas (muestra pequeña)': 'importes_redondos',
+        'VALORES EXTREMOS EN MONTOS': 'valores_atipicos',
+        'Valores extremos (muestra pequeña)': 'valores_atipicos',
+        'OUTLIERS CRÍTICOS': 'valores_atipicos',
+        'Valores atípicos': 'valores_atipicos',
+        'Valores atípicos (muestra pequeña)': 'valores_atipicos',
+        'Saltos bruscos en valores': 'cambios_importe',
+        'Huecos en secuencia numérica': 'numeracion_comprobantes',
+        'ASIENTOS CONTABLES DESBALANCEADOS': 'balance_contable',
+    }
+    grouped = {}
+    for anomaly in anomalias:
+        family = families.get(anomaly['tipo'], anomaly['tipo'])
+        entry = grouped.get(family)
+        if entry is None:
+            entry = dict(anomaly)
+            entry['familia'] = family
+            entry['variantes'] = []
+            entry['columnas_afectadas'] = []
+            grouped[family] = entry
+
+        if anomaly['tipo'] not in entry['variantes']:
+            entry['variantes'].append(anomaly['tipo'])
+        if anomaly.get('columna'):
+            entry['columnas_afectadas'].append({
+                'columna': anomaly['columna'],
+                'cantidad': anomaly.get('cantidad'),
+                'porcentaje': anomaly.get('porcentaje'),
+            })
+        elif not entry.get('cantidad') and anomaly.get('cantidad'):
+            entry['cantidad'] = anomaly['cantidad']
+        if anomaly.get('porcentaje'):
+            entry['porcentaje'] = anomaly['porcentaje']
+        if anomaly.get('categoria'):
+            entry['categoria'] = anomaly['categoria']
+
+    category_labels = {
+        'Calidad de Datos': 'Datos incompletos o inusuales',
+        'Integridad': 'Revisión de registros',
+        'Fraude': 'Importes para verificar',
+        'Patrón Inusual': 'Patrón para verificar',
+        'Riesgo Financiero': 'Importes para verificar',
+        'Control Interno': 'Horario de operación',
+        'Análisis Estadístico': 'Patrón estadístico',
+        'Consistencia': 'Cambios entre importes',
+        'Error Contable': 'Balance de débitos y créditos',
+    }
+    for entry in grouped.values():
+        entry['categoria_amigable'] = category_labels.get(entry.get('categoria'), 'Revisión sugerida')
+        if not entry['columnas_afectadas']:
+            entry.pop('columnas_afectadas')
+        entry.pop('variantes')
+    return list(grouped.values())
+
 #----- FUNCIONES DE DETECCIÓN FINANCIERA AVANZADA ----- 
 # ========== FUNCIONES DE DETECCIÓN FINANCIERA ==========
 
 def identificar_columnas_monetarias(df):
     """Identifica columnas que probablemente contengan valores monetarios"""
     columnas_monetarias = []
-    palabras_clave = ['monto', 'valor', 'importe', 'amount', 'total', 'saldo', 'precio', 
-                     'costo', 'debito', 'credito', 'balance', 'payment', 'pago']
+    palabras_clave = ['monto', 'valor', 'importe', 'amount', 'total', 'saldo', 'precio',
+                      'costo', 'debito', 'credito', 'balance', 'payment', 'pago', 'debe', 'haber']
     
     for col in df.columns:
-        col_lower = col.lower()
+        col_lower = normalizar_nombre_columna(col)
         # Verificar por nombre de columna
         if any(palabra in col_lower for palabra in palabras_clave):
             columnas_monetarias.append(col)
@@ -1449,10 +1755,10 @@ def identificar_columnas_monetarias(df):
 def identificar_columnas_fecha(df):
     """Identifica columnas que probablemente contengan fechas"""
     columnas_fecha = []
-    palabras_clave = ['fecha', 'date', 'time', 'hora', 'dia', 'mes', 'año', 'timestamp']
+    palabras_clave = ['fecha', 'date', 'time', 'hora', 'dia', 'mes', 'ano', 'timestamp']
     
     for col in df.columns:
-        col_lower = col.lower()
+        col_lower = normalizar_nombre_columna(col)
         if any(palabra in col_lower for palabra in palabras_clave):
             columnas_fecha.append(col)
         # Verificar si la columna es de tipo datetime
@@ -1460,6 +1766,13 @@ def identificar_columnas_fecha(df):
             columnas_fecha.append(col)
     
     return list(set(columnas_fecha))
+
+
+def normalizar_nombre_columna(columna):
+    """Normaliza nombres para reconocer encabezados con tildes y mayúsculas."""
+    normalized = unicodedata.normalize('NFKD', str(columna).lower())
+    return ''.join(character for character in normalized if not unicodedata.combining(character))
+
 
 def detectar_transacciones_redondas(serie):
     """Detecta transacciones con montos redondos (ej: 1000, 5000)"""
@@ -1575,9 +1888,15 @@ def detectar_saltos_bruscos(serie):
     return len(saltos)
 
 def detectar_asientos_desbalanceados(df):
-    """Detecta si hay desbalance entre débitos y créditos"""
-    columnas_debito = [col for col in df.columns if 'debito' in col.lower() or 'debit' in col.lower()]
-    columnas_credito = [col for col in df.columns if 'credito' in col.lower() or 'credit' in col.lower()]
+    """Detecta desbalance entre columnas de débito/crédito o debe/haber."""
+    columnas_debito = [
+        col for col in df.columns
+        if any(term in normalizar_nombre_columna(col) for term in ('debito', 'debit', 'debe'))
+    ]
+    columnas_credito = [
+        col for col in df.columns
+        if any(term in normalizar_nombre_columna(col) for term in ('credito', 'credit', 'haber'))
+    ]
     
     if not columnas_debito or not columnas_credito:
         return 0

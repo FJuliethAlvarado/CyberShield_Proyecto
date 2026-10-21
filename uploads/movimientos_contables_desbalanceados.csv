@@ -1,0 +1,9 @@
+Fecha,Comprobante,Cuenta,Descripcion,Debito,Credito,Importe,Estado
+2026-09-01,ASI-101,1105 Caja,Ingreso por venta,15123,0,15123,Registrado
+2026-09-01,ASI-101,4135 Ventas,Ingreso por venta,0,15123,15123,Registrado
+2026-09-02,ASI-102,5135 Gastos,Compra de insumos,17891,0,17891,Registrado
+2026-09-02,ASI-102,1105 Caja,Compra de insumos,0,17891,17891,Registrado
+2026-09-03,ASI-103,1110 Bancos,Pago de servicio,19357,0,19357,Registrado
+2026-09-03,ASI-103,5135 Gastos,Pago de servicio,0,19357,19357,Registrado
+2026-09-04,ASI-104,1305 Clientes,Venta a credito,22109,0,22109,Registrado
+2026-09-04,ASI-104,4135 Ventas,Venta a credito,0,20109,20109,Registrado

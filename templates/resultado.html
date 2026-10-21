@@ -5,9 +5,7 @@
     <div class="card-header bg-{{ resultado.color_riesgo }} text-white">
         <h4 class="mb-0">
             <i class="fas fa-file-medical-alt"></i> Resultado del Diagnóstico
-            <span class="badge bg-light text-dark float-end">
-                <i class="fas fa-robot"></i> Análisis con IA
-            </span>
+            <span class="badge bg-light text-dark float-end">Evaluación estructurada</span>
         </h4>
     </div>
     <div class="card-body">
@@ -39,7 +37,7 @@
             <div class="col-md-6">
                 <div class="card border-{{ resultado.color_riesgo }}">
                     <div class="card-body text-center">
-                        <h6><i class="fas fa-chart-line me-2"></i>Puntuación de Riesgo</h6>
+                        <h6><i class="fas fa-chart-line me-2"></i>Riesgo residual</h6>
                         <h2 class="text-{{ resultado.color_riesgo }}">{{ "%.1f"|format(resultado.puntuacion_final) }}/100</h2>
                         <div class="progress mt-2" style="height: 20px;">
                             <div class="progress-bar bg-{{ resultado.color_riesgo }}" 
@@ -59,94 +57,44 @@
                                 {{ resultado.nivel_riesgo|upper }}
                             </span>
                         </h2>
-                        <small class="text-muted">Clasificación final del análisis</small>
+                        <small class="text-muted">Después de considerar los controles reportados</small>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ========== PREDICCIÓN DE MACHINE LEARNING ========== -->
-        {% if resultado.ml_prediction %}
         <div class="card bg-light mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-brain me-2"></i>Análisis con Inteligencia Artificial
-                </h5>
-            </div>
+            <div class="card-header"><h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>Cómo se calculó</h5></div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4 text-center mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <i class="fas fa-robot fa-3x text-primary mb-3"></i>
-                                <h6>Predicción del Modelo ML</h6>
-                                <h4 class="text-primary">{{ resultado.ml_prediction }}</h4>
-                            </div>
-                        </div>
+                <p>La evaluación es una regla transparente, no una predicción de IA ni una auditoría certificada. Riesgo inherente = probabilidad (1–5) × impacto (1–5) × 4. Riesgo residual = riesgo inherente × (1 − 0,6 × efectividad reportada de controles). Sector y tamaño se recopilan como contexto y no modifican la puntuación.</p>
+                <div class="row text-center">
+                    <div class="col-md-4 mb-3">
+                        <strong>Riesgo inherente</strong>
+                        <div class="h4 mb-0">{{ resultado.puntuacion_inherente }}/100</div>
+                        <small class="text-muted">Antes de considerar controles</small>
                     </div>
-                    <div class="col-md-8">
-                        <h6 class="mb-3"><i class="fas fa-chart-bar me-2"></i>Nivel de Confianza del Modelo</h6>
-                        
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span><strong>Riesgo Crítico</strong></span>
-                                <span class="text-muted">{{ "%.1f"|format(resultado.ml_confidence.Crítico) }}%</span>
-                            </div>
-                            <div class="progress" style="height: 25px;">
-                                <div class="progress-bar bg-danger" 
-                                     style="width: {{ resultado.ml_confidence.Crítico }}%">
-                                    {{ "%.0f"|format(resultado.ml_confidence.Crítico) }}%
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span><strong>Riesgo Alto</strong></span>
-                                <span class="text-muted">{{ "%.1f"|format(resultado.ml_confidence.Alto) }}%</span>
-                            </div>
-                            <div class="progress" style="height: 25px;">
-                                <div class="progress-bar bg-warning" 
-                                     style="width: {{ resultado.ml_confidence.Alto }}%">
-                                    {{ "%.0f"|format(resultado.ml_confidence.Alto) }}%
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span><strong>Riesgo Medio</strong></span>
-                                <span class="text-muted">{{ "%.1f"|format(resultado.ml_confidence.Medio) }}%</span>
-                            </div>
-                            <div class="progress" style="height: 25px;">
-                                <div class="progress-bar bg-info" 
-                                     style="width: {{ resultado.ml_confidence.Medio }}%">
-                                    {{ "%.0f"|format(resultado.ml_confidence.Medio) }}%
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-0">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span><strong>Riesgo Bajo</strong></span>
-                                <span class="text-muted">{{ "%.1f"|format(resultado.ml_confidence.Bajo) }}%</span>
-                            </div>
-                            <div class="progress" style="height: 25px;">
-                                <div class="progress-bar bg-success" 
-                                     style="width: {{ resultado.ml_confidence.Bajo }}%">
-                                    {{ "%.0f"|format(resultado.ml_confidence.Bajo) }}%
-                                </div>
-                            </div>
-                        </div>
+                    <div class="col-md-4 mb-3">
+                        <strong>Efectividad reportada de controles</strong>
+                        <div class="h4 mb-0">{{ resultado.efectividad_controles }}%</div>
+                        <small class="text-muted">No implica verificación técnica</small>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <strong>Completitud conocida</strong>
+                        <div class="h4 mb-0">{{ resultado.completitud }}%</div>
+                        <small class="text-muted">Respuestas distintas de “No sé”</small>
                     </div>
                 </div>
+                <p class="mb-0"><strong>Factores usados:</strong> probabilidad {{ resultado.probabilidad|lower }} e impacto {{ resultado.impacto|lower }}. El resultado es orientativo y depende de la exactitud de las respuestas.</p>
+            </div>
+        </div>
 
-                <div class="alert alert-info mt-3 mb-0">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>¿Cómo funciona?</strong> Nuestro modelo de Machine Learning analiza patrones históricos de miles de diagnósticos 
-                    para predecir el nivel de riesgo con mayor precisión. La puntuación final combina análisis tradicional (50%) 
-                    y predicción ML (50%) para darte el resultado más confiable.
-                </div>
+        {% if resultado.hallazgos %}
+        <div class="mb-4">
+            <h5><i class="fas fa-search me-2"></i>Brechas identificadas</h5>
+            <div class="d-flex flex-wrap gap-2">
+                {% for hallazgo in resultado.hallazgos %}
+                <span class="badge bg-secondary p-2">{{ hallazgo }}</span>
+                {% endfor %}
             </div>
         </div>
         {% endif %}
@@ -201,8 +149,7 @@
                 <strong>Monitoreo y Mejora Continua:</strong> Su empresa presenta un nivel de riesgo moderado. Aunque no es urgente, 
                 es recomendable implementar las mejoras sugeridas para fortalecer su postura de seguridad.
                 {% else %}
-                <strong>Buen Nivel de Seguridad:</strong> Su empresa mantiene un nivel de riesgo bajo. Continue con las buenas prácticas 
-                actuales y realice revisiones periódicas para mantener este nivel.
+                <strong>Menor riesgo relativo según las respuestas:</strong> Mantenga los controles y revíselos periódicamente. Este resultado no garantiza que la empresa esté libre de riesgos.
                 {% endif %}
             </p>
         </div>
